@@ -1,0 +1,12 @@
+{
+  "name": "emartech/php-contact-list-processor",
+  "description": "Package to process large contact lists in batches",
+  "minimum-stability": "stable",
+  "license": [
+    "MIT"
+  ],
+  "prefer-stable" : true,
+  "require": {
+    "php": "~7.3"
+  }
+}
