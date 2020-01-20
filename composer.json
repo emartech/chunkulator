@@ -7,6 +7,18 @@
   ],
   "prefer-stable" : true,
   "require": {
-    "php": "~7.3"
+    "php": "~7.3",
+    "emartech/php-amqp-wrapper": "dev-master"
+  },
+  "require-dev": {
+    "emartech/php-test-helpers": "^1.1",
+    "phpunit/phpunit": "*",
+    "phpunit/php-invoker": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "Emartech\\Chunkulator\\": "src/",
+      "Emartech\\Chunkulator\\Test\\": "test/"
+    }
   }
 }
