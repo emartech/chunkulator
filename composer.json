@@ -1,6 +1,6 @@
 {
-  "name": "emartech/php-contact-list-processor",
-  "description": "Package to process large contact lists in batches",
+  "name": "emartech/chunkulator",
+  "description": "Package to process large lists in batches",
   "minimum-stability": "stable",
   "license": [
     "MIT"
