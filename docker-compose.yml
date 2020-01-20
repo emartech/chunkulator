@@ -1,0 +1,18 @@
+version: '3'
+
+services:
+  dev:
+    image: emarsys/php7:7.3-cli
+    volumes:
+      - .:/app:rw
+    working_dir: /app
+    networks:
+      default:
+        aliases:
+          - automation-participation
+    links:
+      - rabbit
+    command: cron -f
+
+  rabbit:
+    image: rabbitmq:latest
