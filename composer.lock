@@ -4,11 +4,11 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "8eb149be6a19b47e55cb7559d2d0cbb8",
+    "content-hash": "d3eb161b087eefdd90858f535b68c500",
     "packages": [
         {
             "name": "emartech/php-amqp-wrapper",
-            "version": "dev-master",
+            "version": "1.1.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/emartech/php-amqp-wrapper.git",
@@ -2383,10 +2383,8 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {
-        "emartech/php-amqp-wrapper": 20
-    },
-    "prefer-stable": true,
+    "stability-flags": [],
+    "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
         "php": "~7.3"

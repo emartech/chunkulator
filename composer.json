@@ -5,10 +5,10 @@
   "license": [
     "MIT"
   ],
-  "prefer-stable" : true,
+  "prefer-stable" : false,
   "require": {
     "php": "~7.3",
-    "emartech/php-amqp-wrapper": "dev-master"
+    "emartech/php-amqp-wrapper": "1.1.4"
   },
   "require-dev": {
     "emartech/php-test-helpers": "^1.1",
