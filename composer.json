@@ -17,7 +17,11 @@
   },
   "autoload": {
     "psr-4": {
-      "Emartech\\Chunkulator\\": "src/",
+      "Emartech\\Chunkulator\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
       "Emartech\\Chunkulator\\Test\\": "test/"
     }
   }
