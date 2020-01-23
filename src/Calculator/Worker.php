@@ -21,6 +21,7 @@ class Worker
             ->consume(
                 $this->createChunkProcessor($queueFactory)
             );
+        $queueFactory->closeWorkerQueue();
     }
 
     private function createChunkProcessor(QueueFactory $queueFactory): Consumer

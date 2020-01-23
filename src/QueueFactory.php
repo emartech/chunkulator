@@ -49,4 +49,9 @@ class QueueFactory
     {
         return $this->getConnectionPool()->closeQueue($this->notifierQueueName);
     }
+
+    public function closeWorkerQueue()
+    {
+        return $this->getConnectionPool()->closeQueue($this->workerQueueName);
+    }
 }
