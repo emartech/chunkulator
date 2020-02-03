@@ -15,13 +15,7 @@ class ChunkCalculator
 
     public function calculateChunkCount(int $sourceListCount): int
     {
-        $chunkCount = $sourceListCount / $this->chunkSize;
-
-        if ($chunkCount > (int)$chunkCount) {
-            $chunkCount = (int)$chunkCount + 1;
-        }
-
-        return $chunkCount;
+        return ceil($sourceListCount / $this->chunkSize);
     }
 
     public function getChunkSize(): int
