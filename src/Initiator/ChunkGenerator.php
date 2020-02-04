@@ -10,11 +10,13 @@ class ChunkGenerator
 {
     const MAX_RETRY_COUNT = 3;
 
-    private $queue;
+    private $workerQueue;
+    private $notifierQueue;
 
-    public function __construct(Queue $queue)
+    public function __construct(Queue $workerQueue, Queue $notifierQueue)
     {
-        $this->queue = $queue;
+        $this->workerQueue = $workerQueue;
+        $this->notifierQueue = $notifierQueue;
     }
 
     public function createChunks(Request $calculationRequest)
@@ -26,7 +28,18 @@ class ChunkGenerator
                 self::MAX_RETRY_COUNT
             );
 
-            $chunk->enqueueIn($this->queue);
+            $chunk->enqueueIn($this->workerQueue);
         }
+    }
+
+    public function createEmptyChunk(Request $calculationRequest)
+    {
+        $chunk = new ChunkRequest(
+            $calculationRequest,
+            0,
+            self::MAX_RETRY_COUNT
+        );
+
+        $chunk->enqueueIn($this->notifierQueue);
     }
 }

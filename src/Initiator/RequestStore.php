@@ -15,7 +15,10 @@ class RequestStore
     {
         return new self(
             new ChunkCalculator($chunkSize),
-            new ChunkGenerator($resourceFactory->createQueueFactory()->createWorkerQueue()),
+            new ChunkGenerator(
+                $resourceFactory->createQueueFactory()->createWorkerQueue(),
+                $resourceFactory->createQueueFactory()->createNotifierQueue()
+            ),
         );
     }
 
@@ -27,13 +30,19 @@ class RequestStore
 
     public function storeRequest(int $sourceListCount, array $requestData, string $triggerId): void
     {
+        $chunkCount = $sourceListCount > 0 ? $this->chunkCalculator->calculateChunkCount($sourceListCount) : 1;
+
         $calculationRequest = new Request(
             $triggerId,
             $this->chunkCalculator->getChunkSize(),
-            $this->chunkCalculator->calculateChunkCount($sourceListCount),
+            $chunkCount,
             $requestData
         );
 
-        $this->chunkGenerator->createChunks($calculationRequest);
+        if ($sourceListCount > 0) {
+            $this->chunkGenerator->createChunks($calculationRequest);
+        } else {
+            $this->chunkGenerator->createEmptyChunk($calculationRequest);
+        }
     }
 }
