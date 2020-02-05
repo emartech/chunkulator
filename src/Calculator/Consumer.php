@@ -69,6 +69,7 @@ class Consumer implements QueueConsumer
         } else {
             try {
                 $this->resultHandler->onFailure($request->getCalculationRequest()->getData());
+                $message->discard();
             } catch (Throwable $t) {
                 $request->enqueueIn($workerQueue);
                 $message->discard();
