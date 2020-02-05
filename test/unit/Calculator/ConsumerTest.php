@@ -117,23 +117,17 @@ class ConsumerTest extends BaseTestCase
     /**
      * @test
      */
-    public function consume_NoMoreTriesLeftAndCallbackFails_DiscardsMessage()
+    public function consume_NoMoreTriesLeft_DiscardsMessage()
     {
-        $request = CalculationRequest::createChunkRequest(1, 1, 0, 0);
+        $request = CalculationRequest::createChunkRequest(2, 1, 0, 0);
         $message = $this->createMessage($request);
 
         $this->expectFiltering()->willThrowException($this->createMock(Throwable::class));
-        $this->expectFailureHandlerCall()->willThrowException($this->createMock(Throwable::class));
+        $this->expectFailureHandlerCall();
 
         $message->expects($this->once())->method('discard');
 
-        try {
-            $this->consumer->consume($message);
-        } catch (Throwable $t) {
-            return;
-        }
-
-        $this->fail();
+        $this->consumer->consume($message);
     }
 
     /**
