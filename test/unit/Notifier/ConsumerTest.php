@@ -40,7 +40,7 @@ class ConsumerTest extends BaseTestCase
     /**
      * @test
      */
-    public function finishCalculations_SingleChunkCalculation_BatchRunResumedAndMessageAcked(): void
+    public function consume_SingleChunkCalculation_BatchRunResumedAndMessageAcked(): void
     {
         $chunkRequest = CalculationRequest::createChunkRequest(1, 1, 0);
 
@@ -49,26 +49,15 @@ class ConsumerTest extends BaseTestCase
 
         $this->expectSuccessNotificationRequest()->with($chunkRequest->getCalculationRequest()->getData());
 
-        $this->consumer->addMessage($mockMessage);
-        $this->consumer->finishCalculations();
+        $this->consumer->consume($mockMessage);
     }
 
     /**
      * @test
      */
-    public function finishCalculations_NoChunks_NothingIsNotified(): void
-    {
-        $this->expectSuccessNotificationRequest($this->never());
-        $this->consumer->finishCalculations();
-    }
-
-    /**
-     * @test
-     */
-    public function finishCalculations_SuccessNotificationFails_ErrorLoggedMessageRepublishedExceptionThrown(): void
+    public function consume_SuccessNotificationFails_ErrorLoggedMessageRepublishedExceptionThrown(): void
     {
         $mockMessage = $this->createMessage(CalculationRequest::createChunkRequest(1, 1, 0));
-        $this->consumer->addMessage($mockMessage);
 
         $ex = new Exception();
         $this->expectSuccessNotificationRequest()->willThrowException($ex);
@@ -76,15 +65,15 @@ class ConsumerTest extends BaseTestCase
         $mockMessage->expects($this->never())->method('ack');
         $mockMessage->expects($this->once())->method('discard');
 
-        $this->assertExceptionThrown($this->identicalTo($ex), function () {
-            $this->consumer->finishCalculations();
+        $this->assertExceptionThrown($this->identicalTo($ex), function () use ($mockMessage) {
+            $this->consumer->consume($mockMessage);
         });
     }
 
     /**
      * @test
      */
-    public function finishCalculations_MultipleFinishedCalculations_SuccessNotificationForAllAndMessagesAcked(): void
+    public function consume_MultipleFinishedCalculations_SuccessNotificationForAllAndMessagesAcked(): void
     {
         $calculationRequest1 = CalculationRequest::createCalculationRequest(2, 1, 'trigger1');
         $calculation1ChunkRequest1 = new ChunkRequest($calculationRequest1, 0, Request::MAX_RETRY_COUNT);
@@ -98,11 +87,6 @@ class ConsumerTest extends BaseTestCase
         $calculation2chunkMessage1 = $this->createMessage($calculation2ChunkRequest1);
         $calculation2chunkMessage2 = $this->createMessage($calculation2ChunkRequest2);
 
-        $this->consumer->addMessage($calculation1chunkMessage1);
-        $this->consumer->addMessage($calculation1chunkMessage2);
-        $this->consumer->addMessage($calculation2chunkMessage1);
-        $this->consumer->addMessage($calculation2chunkMessage2);
-
         $this->expectSuccessNotificationRequest($this->at(0))->with($calculationRequest1->getData());
         $this->expectSuccessNotificationRequest($this->at(1))->with($calculationRequest2->getData());
 
@@ -111,7 +95,10 @@ class ConsumerTest extends BaseTestCase
         $calculation2chunkMessage1->expects($this->once())->method('ack');
         $calculation2chunkMessage2->expects($this->once())->method('ack');
 
-        $this->consumer->finishCalculations();
+        $this->consumer->consume($calculation1chunkMessage1);
+        $this->consumer->consume($calculation1chunkMessage2);
+        $this->consumer->consume($calculation2chunkMessage1);
+        $this->consumer->consume($calculation2chunkMessage2);
     }
 
     /**
@@ -129,10 +116,6 @@ class ConsumerTest extends BaseTestCase
         $calculation1chunkMessage2 = $this->createMessage($calculation1ChunkRequest2);
         $calculation2chunkMessage1 = $this->createMessage($calculation2ChunkRequest1);
 
-        $this->consumer->addMessage($calculation1chunkMessage1);
-        $this->consumer->addMessage($calculation1chunkMessage2);
-        $this->consumer->addMessage($calculation2chunkMessage1);
-
         $this->expectSuccessNotificationRequest()->with($calculationRequest1->getData());
 
         $calculation1chunkMessage1->expects($this->once())->method('ack');
@@ -142,7 +125,9 @@ class ConsumerTest extends BaseTestCase
         $calculation2chunkMessage1->expects($this->never())->method('ack');
         $calculation2chunkMessage1->expects($this->never())->method('reject');
 
-        $this->consumer->finishCalculations();
+        $this->consumer->consume($calculation1chunkMessage1);
+        $this->consumer->consume($calculation1chunkMessage2);
+        $this->consumer->consume($calculation2chunkMessage1);
     }
 
     /**
@@ -160,10 +145,6 @@ class ConsumerTest extends BaseTestCase
         $calculation1chunkMessage2 = $this->createMessage($calculation1ChunkRequest2);
         $calculation2chunkMessage1 = $this->createMessage($calculation2ChunkRequest1);
 
-        $this->consumer->addMessage($calculation1chunkMessage1);
-        $this->consumer->addMessage($calculation1chunkMessage2);
-        $this->consumer->addMessage($calculation2chunkMessage1);
-
         $calculation1chunkMessage1->expects($this->never())->method('ack');
         $calculation1chunkMessage2->expects($this->never())->method('ack');
         $calculation1chunkMessage1->expects($this->never())->method('reject');
@@ -173,7 +154,9 @@ class ConsumerTest extends BaseTestCase
 
         $this->expectSuccessNotificationRequest($this->never());
 
-        $this->consumer->finishCalculations();
+        $this->consumer->consume($calculation1chunkMessage1);
+        $this->consumer->consume($calculation1chunkMessage2);
+        $this->consumer->consume($calculation2chunkMessage1);
     }
 
     /**

@@ -49,7 +49,7 @@ class Consumer implements QueueConsumer
         }
     }
 
-    public function addMessage(Message $message): void
+    private function addMessage(Message $message): void
     {
         ChunkRequestBuilder::fromMessage($message)->addFinishedChunkTo($this, $message);
     }
@@ -62,7 +62,7 @@ class Consumer implements QueueConsumer
         $this->calculations[$requestId]->addFinishedChunk($chunkId, $message);
     }
 
-    public function finishCalculations(): void
+    private function finishCalculations(): void
     {
         foreach ($this->calculations as $calculation) {
             $calculation->finish($this);
