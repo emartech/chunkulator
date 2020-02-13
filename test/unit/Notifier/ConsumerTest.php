@@ -4,12 +4,13 @@ namespace Emartect\Chunkulator\Test\Unit;
 
 use Emartech\AmqpWrapper\Message;
 use Emartech\TestHelper\BaseTestCase;
-use Emartech\Chunkulator\Exception;
+use Emartech\Chunkulator\Exception as ResultHandlerException;
 use Emartech\Chunkulator\Notifier\Consumer;
 use Emartech\Chunkulator\Notifier\ResultHandler;
 use Emartech\Chunkulator\Request\ChunkRequest;
 use Emartech\Chunkulator\Request\Request;
 use Emartech\Chunkulator\Test\Helpers\CalculationRequest;
+use Exception;
 use PHPUnit\Framework\MockObject\Builder\InvocationMocker;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Rule\InvocationOrder;
@@ -55,7 +56,25 @@ class ConsumerTest extends BaseTestCase
     /**
      * @test
      */
-    public function consume_SuccessNotificationFails_ErrorLoggedMessageRepublishedExceptionThrown(): void
+    public function consume_SuccessNotificationFails_ErrorLoggedMessageDiscardedExceptionThrown(): void
+    {
+        $mockMessage = $this->createMessage(CalculationRequest::createChunkRequest(1, 1, 0));
+
+        $ex = new ResultHandlerException();
+        $this->expectSuccessNotificationRequest()->willThrowException($ex);
+
+        $mockMessage->expects($this->never())->method('ack');
+        $mockMessage->expects($this->once())->method('discard');
+
+        $this->assertExceptionThrown($this->identicalTo($ex), function () use ($mockMessage) {
+            $this->consumer->consume($mockMessage);
+        });
+    }
+
+    /**
+     * @test
+     */
+    public function consume_ConsumeFailsWithGenericException_ErrorLoggedExceptionThrown(): void
     {
         $mockMessage = $this->createMessage(CalculationRequest::createChunkRequest(1, 1, 0));
 
@@ -63,7 +82,7 @@ class ConsumerTest extends BaseTestCase
         $this->expectSuccessNotificationRequest()->willThrowException($ex);
 
         $mockMessage->expects($this->never())->method('ack');
-        $mockMessage->expects($this->once())->method('discard');
+        $mockMessage->expects($this->never())->method('discard');
 
         $this->assertExceptionThrown($this->identicalTo($ex), function () use ($mockMessage) {
             $this->consumer->consume($mockMessage);
