@@ -74,8 +74,7 @@ class ConsumerTest extends BaseTestCase
         $this->expectSuccessNotificationRequest()->willThrowException($ex);
 
         $mockMessage->expects($this->never())->method('ack');
-        $mockMessage->expects($this->at(0))->method('publish');
-        $mockMessage->expects($this->at(1))->method('discard');
+        $mockMessage->expects($this->once())->method('discard');
 
         $this->assertExceptionThrown($this->identicalTo($ex), function () {
             $this->consumer->finishCalculations();

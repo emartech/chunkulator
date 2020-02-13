@@ -38,7 +38,7 @@ class Calculation
                 $this->ackMessages();
                 $this->calculationRequest->removeFromContainer($calculationContainer);
             } catch (Exception $ex) {
-                $this->defer();
+                $this->discard();
                 throw $ex;
             }
         }
@@ -56,10 +56,17 @@ class Calculation
         }
     }
 
-    public function defer(): void
+    public function requeue(): void
     {
         foreach ($this->messages as $message) {
             $message->publish();
+            $message->discard();
+        }
+    }
+
+    public function discard(): void
+    {
+        foreach ($this->messages as $message) {
             $message->discard();
         }
     }

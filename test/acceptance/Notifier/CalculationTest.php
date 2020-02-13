@@ -2,7 +2,7 @@
 
 namespace Emartech\Chunkulator\Test\Acceptance;
 
-use Emartech\Chunkulator\Exception;
+use Emartech\Chunkulator\Exception as ResultHandlerException;
 use Emartech\Chunkulator\Notifier\Calculation;
 use Emartech\Chunkulator\Notifier\Consumer;
 use Emartech\Chunkulator\Notifier\ResultHandler;
@@ -34,9 +34,9 @@ class CalculationTest extends IntegrationBaseTestCase
     /**
      * @test
      */
-    public function calculation_SuccessHandlerFails_MessageRequeued()
+    public function calculation_SuccessHandlerFails_MessageDiscarded()
     {
-        $ex = new Exception();
+        $ex = new ResultHandlerException();
         $this->resultHandler->expects($this->once())->method('onSuccess')->willThrowException($ex);
 
         $this->notifierQueue->send(['test message']);
@@ -52,10 +52,9 @@ class CalculationTest extends IntegrationBaseTestCase
         });
 
         $this->notifierQueue->consume($this->spyConsumer);
+        $this->assertCount(2, $this->spyConsumer->consumedMessages);
         $message2 = $this->spyConsumer->consumedMessages[1];
-        $message3 = $this->spyConsumer->consumedMessages[2];
 
         $this->assertEquals(['other message'], $message2->getContents());
-        $this->assertEquals(['test message'], $message3->getContents());
     }
 }

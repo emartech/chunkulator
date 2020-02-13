@@ -44,7 +44,7 @@ class Consumer implements QueueConsumer
     public function timeOut(): void
     {
         foreach ($this->calculations as $requestId => $calculation) {
-            $calculation->defer();
+            $calculation->requeue();
             $this->removeCalculation($requestId);
         }
     }

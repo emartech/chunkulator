@@ -103,8 +103,8 @@ class CalculationTest extends BaseTestCase
         $ex = new Exception();
         $this->expectSuccessHandlerCall()->willThrowException($ex);
 
-        $this->message->expects($this->at(0))->method('publish');
-        $this->message->expects($this->at(1))->method('discard');
+        $this->message->expects($this->once())->method('discard');
+        $this->message->expects($this->never())->method('publish');
 
         $calculation = new Calculation($this->resultHandler, CalculationRequest::createCalculationRequest(1, 1));
         $calculation->addFinishedChunk(0, $this->message);
