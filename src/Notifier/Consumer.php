@@ -43,9 +43,9 @@ class Consumer implements QueueConsumer
 
     public function timeOut(): void
     {
-        foreach ($this->calculations as $triggerId => $calculation) {
+        foreach ($this->calculations as $requestId => $calculation) {
             $calculation->defer();
-            $this->removeCalculation($triggerId);
+            $this->removeCalculation($requestId);
         }
     }
 
@@ -54,12 +54,12 @@ class Consumer implements QueueConsumer
         ChunkRequestBuilder::fromMessage($message)->addFinishedChunkTo($this, $message);
     }
 
-    public function addFinishedChunk(string $triggerId, int $chunkId, Message $message, Request $calculationRequest)
+    public function addFinishedChunk(string $requestId, int $chunkId, Message $message, Request $calculationRequest)
     {
-        if (!isset($this->calculations[$triggerId])) {
-            $this->calculations[$triggerId] = new Calculation($this->resultHandler, $calculationRequest);
+        if (!isset($this->calculations[$requestId])) {
+            $this->calculations[$requestId] = new Calculation($this->resultHandler, $calculationRequest);
         }
-        $this->calculations[$triggerId]->addFinishedChunk($chunkId, $message);
+        $this->calculations[$requestId]->addFinishedChunk($chunkId, $message);
     }
 
     public function finishCalculations(): void
@@ -69,8 +69,8 @@ class Consumer implements QueueConsumer
         }
     }
 
-    public function removeCalculation(string $triggerId): void
+    public function removeCalculation(string $requestId): void
     {
-        unset($this->calculations[$triggerId]);
+        unset($this->calculations[$requestId]);
     }
 }

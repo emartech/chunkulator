@@ -86,7 +86,7 @@ class ConsumerTest extends BaseTestCase
         $this->expectTargetContactToBe($request, $filteredContactIds);
 
         $this->expectEnqueueToNotifierQueue($this->structure([
-            'triggerId' => Constants::TRIGGER_ID,
+            'requestId' => Constants::TRIGGER_ID,
             'chunkCount' => $this->identicalTo($chunkCount),
             'chunkId' => $this->identicalTo(2),
         ]));

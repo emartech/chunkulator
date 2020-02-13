@@ -12,15 +12,15 @@ class Request
     public $chunkSize;
     private $chunkCount;
     private $data;
-    private $triggerId;
+    private $requestId;
 
 
-    public function __construct(string $triggerId, int $chunkSize, int $chunkCount, array $data)
+    public function __construct(string $requestId, int $chunkSize, int $chunkCount, array $data)
     {
         $this->chunkSize = $chunkSize;
         $this->chunkCount = $chunkCount;
         $this->data = $data;
-        $this->triggerId = $triggerId;
+        $this->requestId = $requestId;
     }
 
     public function getChunkOffset(int $chunkId): int
@@ -35,12 +35,12 @@ class Request
 
     public function addFinishedChunkTo(Consumer $consumer, Message $message, int $chunkId): void
     {
-        $consumer->addFinishedChunk($this->triggerId, $chunkId, $message, $this);
+        $consumer->addFinishedChunk($this->requestId, $chunkId, $message, $this);
     }
 
     public function removeFromContainer(Consumer $consumer): void
     {
-        $consumer->removeCalculation($this->triggerId);
+        $consumer->removeCalculation($this->requestId);
     }
 
     public function getMessageData(): array
@@ -51,7 +51,7 @@ class Request
     private function toArray(): array
     {
         return [
-            'triggerId' => $this->triggerId,
+            'requestId' => $this->requestId,
             'chunkSize' => $this->chunkSize,
             'chunkCount' => $this->chunkCount,
             'data' => $this->data

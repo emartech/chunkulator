@@ -4,5 +4,5 @@ namespace Emartech\Chunkulator\Test\Helpers;
 
 class Constants
 {
-    const TRIGGER_ID = 'triggerId';
+    const TRIGGER_ID = 'requestId';
 }

@@ -45,7 +45,7 @@ class RequestStoreTest extends IntegrationBaseTestCase
 
         $this->assertEmpty($this->workerConsumer->consumedMessages);
         $this->assertEquals([
-            'triggerId' => self::TRIGGER_ID,
+            'requestId' => self::TRIGGER_ID,
             'chunkSize' => self::CHUNK_SIZE,
             'chunkCount' => 1,
             'data' => [],
@@ -69,7 +69,7 @@ class RequestStoreTest extends IntegrationBaseTestCase
         $this->notifierQueue->consume($this->notifierConsumer);
 
         $this->assertEquals([
-            'triggerId' => self::TRIGGER_ID,
+            'requestId' => self::TRIGGER_ID,
             'chunkSize' => self::CHUNK_SIZE,
             'chunkCount' => 2,
             'data' => [],
@@ -78,7 +78,7 @@ class RequestStoreTest extends IntegrationBaseTestCase
         ], $this->workerConsumer->consumedMessages[0]->getContents());
 
         $this->assertEquals([
-            'triggerId' => self::TRIGGER_ID,
+            'requestId' => self::TRIGGER_ID,
             'chunkSize' => self::CHUNK_SIZE,
             'chunkCount' => 2,
             'data' => [],

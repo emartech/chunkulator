@@ -28,12 +28,12 @@ class RequestStore
         $this->chunkGenerator = $chunkGenerator;
     }
 
-    public function storeRequest(int $sourceListCount, array $requestData, string $triggerId): void
+    public function storeRequest(int $sourceListCount, array $requestData, string $requestId): void
     {
         $chunkCount = $sourceListCount > 0 ? $this->chunkCalculator->calculateChunkCount($sourceListCount) : 1;
 
         $calculationRequest = new Request(
-            $triggerId,
+            $requestId,
             $this->chunkCalculator->getChunkSize(),
             $chunkCount,
             $requestData

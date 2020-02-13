@@ -16,10 +16,10 @@ class CalculationRequest
         );
     }
 
-    public static function createCalculationRequest($chunkCount, $chunkSize, $triggerId = Constants::TRIGGER_ID): Request
+    public static function createCalculationRequest($chunkCount, $chunkSize, $requestId = Constants::TRIGGER_ID): Request
     {
         return new Request(
-            $triggerId,
+            $requestId,
             $chunkSize,
             $chunkCount,
             ['dummyRequestData']

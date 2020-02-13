@@ -12,7 +12,7 @@ class ChunkRequestBuilder
 
         return new ChunkRequest(
             new Request(
-                (string)$messageData['triggerId'],
+                (string)$messageData['requestId'],
                 (int)$messageData['chunkSize'],
                 (int)$messageData['chunkCount'],
                 $messageData['data']
