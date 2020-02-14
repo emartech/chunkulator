@@ -7,6 +7,7 @@ use Emartech\AmqpWrapper\QueueConsumer;
 use Emartech\Chunkulator\Request\ChunkRequest;
 use Emartech\Chunkulator\Request\ChunkRequestBuilder;
 use Exception;
+use Emartech\Chunkulator\Exception as ResultHandlerException;
 use Psr\Log\LoggerInterface;
 
 
@@ -37,6 +38,10 @@ class Consumer implements QueueConsumer
         $calculation->addFinishedChunk($chunkRequest->getChunkId(), $message);
         try {
             $calculation->finish($this);
+        } catch (ResultHandlerException $ex) {
+            $this->logger->error('Finishing calculation failed', ['exception' => $ex]);
+            $calculation->discard();
+            throw $ex;
         } catch (Exception $ex) {
             $this->logger->error('Finishing calculation failed', ['exception' => $ex]);
             throw $ex;

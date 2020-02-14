@@ -95,25 +95,6 @@ class CalculationTest extends BaseTestCase
         $calculation->finish($this->consumer);
     }
 
-    /**
-     * @test
-     */
-    public function finish_Finished_ResumeFailsMessageRepublished()
-    {
-        $ex = new Exception();
-        $this->expectSuccessHandlerCall()->willThrowException($ex);
-
-        $this->message->expects($this->once())->method('discard');
-        $this->message->expects($this->never())->method('publish');
-
-        $calculation = new Calculation($this->resultHandler, CalculationRequest::createCalculationRequest(1, 1));
-        $calculation->addFinishedChunk(0, $this->message);
-
-        $this->assertExceptionThrown($this->identicalTo($ex), function () use ($calculation) {
-            $calculation->finish($this->consumer);
-        });
-    }
-
     private function expectSuccessHandlerCall(InvokedCount $invocationRule = null): InvocationMocker
     {
         return $this->resultHandler->expects($invocationRule ?? $this->once())->method('onSuccess');

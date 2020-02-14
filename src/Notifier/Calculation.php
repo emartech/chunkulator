@@ -33,14 +33,9 @@ class Calculation
     public function finish(Consumer $calculationContainer)
     {
         if ($this->allChunksDone()) {
-            try {
-                $this->resultHandler->onSuccess($this->calculationRequest->getData());
-                $this->ackMessages();
-                $calculationContainer->removeCalculation($this->calculationRequest->getRequestId());
-            } catch (Exception $ex) {
-                $this->discard();
-                throw $ex;
-            }
+            $this->resultHandler->onSuccess($this->calculationRequest->getData());
+            $this->ackMessages();
+            $calculationContainer->removeCalculation($this->calculationRequest->getRequestId());
         }
     }
 
