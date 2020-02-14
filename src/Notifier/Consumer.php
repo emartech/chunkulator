@@ -4,7 +4,7 @@ namespace Emartech\Chunkulator\Notifier;
 
 use Emartech\AmqpWrapper\Message;
 use Emartech\AmqpWrapper\QueueConsumer;
-use Emartech\Chunkulator\Request\Request;
+use Emartech\Chunkulator\Request\ChunkRequest;
 use Emartech\Chunkulator\Request\ChunkRequestBuilder;
 use Exception;
 use Psr\Log\LoggerInterface;
@@ -32,9 +32,11 @@ class Consumer implements QueueConsumer
 
     public function consume(Message $message): void
     {
-        $this->addMessage($message);
+        $chunkRequest = ChunkRequestBuilder::fromMessage($message);
+        $calculation = $this->getCalculation($chunkRequest);
+        $calculation->addFinishedChunk($chunkRequest->getChunkId(), $message);
         try {
-            $this->finishCalculations();
+            $calculation->finish($this);
         } catch (Exception $ex) {
             $this->logger->error('Finishing calculation failed', ['exception' => $ex]);
             throw $ex;
@@ -49,30 +51,18 @@ class Consumer implements QueueConsumer
         }
     }
 
-    private function addMessage(Message $message): void
-    {
-        $chunkRequest = ChunkRequestBuilder::fromMessage($message);
-        $calculationRequest = $chunkRequest->getCalculationRequest();
-        $this->addFinishedChunk($calculationRequest->getRequestId(), $chunkRequest->getChunkId(), $message, $calculationRequest);
-    }
-
-    private function addFinishedChunk(string $requestId, int $chunkId, Message $message, Request $calculationRequest)
-    {
-        if (!isset($this->calculations[$requestId])) {
-            $this->calculations[$requestId] = new Calculation($this->resultHandler, $calculationRequest);
-        }
-        $this->calculations[$requestId]->addFinishedChunk($chunkId, $message);
-    }
-
-    private function finishCalculations(): void
-    {
-        foreach ($this->calculations as $calculation) {
-            $calculation->finish($this);
-        }
-    }
-
     public function removeCalculation(string $requestId): void
     {
         unset($this->calculations[$requestId]);
+    }
+
+    private function getCalculation(ChunkRequest $chunkRequest)
+    {
+        $calculationRequest = $chunkRequest->getCalculationRequest();
+        $requestId = $calculationRequest->getRequestId();
+        if (!isset($this->calculations[$requestId])) {
+            $this->calculations[$requestId] = new Calculation($this->resultHandler, $calculationRequest);
+        }
+        return $this->calculations[$requestId];
     }
 }
