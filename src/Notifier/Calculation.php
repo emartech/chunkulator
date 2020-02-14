@@ -36,7 +36,7 @@ class Calculation
             try {
                 $this->resultHandler->onSuccess($this->calculationRequest->getData());
                 $this->ackMessages();
-                $this->calculationRequest->removeFromContainer($calculationContainer);
+                $calculationContainer->removeCalculation($this->calculationRequest->getRequestId());
             } catch (Exception $ex) {
                 $this->discard();
                 throw $ex;
@@ -46,7 +46,7 @@ class Calculation
 
     public function allChunksDone(): bool
     {
-        return empty(array_diff($this->calculationRequest->allChunkIds(), array_keys($this->messages)));
+        return empty(array_diff($this->allChunkIds(), array_keys($this->messages)));
     }
 
     private function ackMessages(): void
@@ -69,5 +69,10 @@ class Calculation
         foreach ($this->messages as $message) {
             $message->discard();
         }
+    }
+
+    private function allChunkIds()
+    {
+        return range(0, $this->calculationRequest->getChunkCount() - 1);
     }
 }

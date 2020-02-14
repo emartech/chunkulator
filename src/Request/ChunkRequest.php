@@ -2,9 +2,7 @@
 
 namespace Emartech\Chunkulator\Request;
 
-use Emartech\AmqpWrapper\Message;
 use Emartech\AmqpWrapper\Queue;
-use Emartech\Chunkulator\Notifier\Consumer;
 
 class ChunkRequest
 {
@@ -31,11 +29,6 @@ class ChunkRequest
     public function enqueueIn(Queue $queue): void
     {
         $queue->send($this->getMessageData());
-    }
-
-    public function addFinishedChunkTo(Consumer $container, Message $message)
-    {
-        $this->calculationRequest->addFinishedChunkTo($container, $message, $this->chunkId);
     }
 
     public function getMessageData(): array

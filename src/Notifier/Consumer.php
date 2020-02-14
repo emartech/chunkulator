@@ -51,10 +51,12 @@ class Consumer implements QueueConsumer
 
     private function addMessage(Message $message): void
     {
-        ChunkRequestBuilder::fromMessage($message)->addFinishedChunkTo($this, $message);
+        $chunkRequest = ChunkRequestBuilder::fromMessage($message);
+        $calculationRequest = $chunkRequest->getCalculationRequest();
+        $this->addFinishedChunk($calculationRequest->getRequestId(), $chunkRequest->getChunkId(), $message, $calculationRequest);
     }
 
-    public function addFinishedChunk(string $requestId, int $chunkId, Message $message, Request $calculationRequest)
+    private function addFinishedChunk(string $requestId, int $chunkId, Message $message, Request $calculationRequest)
     {
         if (!isset($this->calculations[$requestId])) {
             $this->calculations[$requestId] = new Calculation($this->resultHandler, $calculationRequest);
