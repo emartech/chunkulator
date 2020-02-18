@@ -66,6 +66,11 @@ class Calculation
         }
     }
 
+    public function discardChunk($chunkId): void
+    {
+        $this->messages[$chunkId]->discard();
+    }
+
     private function allChunkIds()
     {
         return range(0, $this->calculationRequest->getChunkCount() - 1);

@@ -3,6 +3,8 @@
 namespace Emartect\Chunkulator\Test\Unit;
 
 use Emartech\AmqpWrapper\Message;
+use Emartech\AmqpWrapper\Queue;
+use Emartech\Chunkulator\QueueFactory;
 use Emartech\TestHelper\BaseTestCase;
 use Emartech\Chunkulator\Exception as ResultHandlerException;
 use Emartech\Chunkulator\Notifier\Consumer;
@@ -27,14 +29,23 @@ class ConsumerTest extends BaseTestCase
     /** @var ResultHandler|MockObject */
     private $resultHandler;
 
+    /**
+     * @var Queue|MockObject
+     */
+    private $notifierQueue;
+
     protected function setUp(): void
     {
         parent::setUp();
         $this->spyLogger = $this->createMock(LoggerInterface::class);
         $this->resultHandler = $this->createMock(ResultHandler::class);
+        $this->notifierQueue = $this->createMock(Queue::class);
+        $queueFactory = $this->createMock(QueueFactory::class);
+        $queueFactory->expects($this->any())->method('createNotifierQueue')->willReturn($this->notifierQueue);
         $this->consumer = new Consumer(
             $this->resultHandler,
-            $this->spyLogger
+            $this->spyLogger,
+            $queueFactory
         );
     }
 
@@ -56,19 +67,19 @@ class ConsumerTest extends BaseTestCase
     /**
      * @test
      */
-    public function consume_SuccessNotificationFails_ErrorLoggedMessageDiscardedExceptionThrown(): void
+    public function consume_SuccessNotificationFailsRetryCountNotReached_MessageRequeuedRetryCountDecremented(): void
     {
         $mockMessage = $this->createMessage(CalculationRequest::createChunkRequest(1, 1, 0));
+        $messageWithDecreasedRetries = $this->createMessage(CalculationRequest::createChunkRequest(1, 1, 0, Request::MAX_RETRY_COUNT - 1));
 
         $ex = new ResultHandlerException();
         $this->expectSuccessNotificationRequest()->willThrowException($ex);
 
         $mockMessage->expects($this->never())->method('ack');
+        $this->notifierQueue->expects($this->once())->method('send')->with($messageWithDecreasedRetries->getContents());
         $mockMessage->expects($this->once())->method('discard');
 
-        $this->assertExceptionThrown($this->identicalTo($ex), function () use ($mockMessage) {
-            $this->consumer->consume($mockMessage);
-        });
+        $this->consumer->consume($mockMessage);
     }
 
     /**
