@@ -69,34 +69,25 @@ class Calculation
         }
     }
 
-    public function discardChunk($chunkId): void
-    {
-        $this->messages[$chunkId]->discard();
-    }
-
     private function allChunkIds()
     {
         return range(0, $this->calculationRequest->getChunkCount() - 1);
     }
 
-    public function retry(Queue $notifierQueue)
+    public function retryNotification(Queue $notifierQueue)
     {
         foreach ($this->messages as $message) {
-            $request = ChunkRequestBuilder::fromMessage($message);
-            if ($request->tries > 0) {
-                $request->tries--;
-                $request->enqueueIn($notifierQueue);
-                $message->discard();
-            } else {
-                try {
-                    $this->resultHandler->onFailure($request->getCalculationRequest()->getData());
-                    $this->discard();
-                } catch (Throwable $t) {
-                    $request->enqueueIn($notifierQueue);
-                    $message->discard();
-                    throw $t;
-                }
-            }
+            $this->retryChunk($notifierQueue, $message);
+        }
+        $this->discard();
+    }
+
+    private function retryChunk(Queue $notifierQueue, Message $message): void
+    {
+        $request = ChunkRequestBuilder::fromMessage($message);
+        if ($request->tries > 0) {
+            $request->tries--;
+            $request->enqueueIn($notifierQueue);
         }
     }
 }

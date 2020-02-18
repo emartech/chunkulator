@@ -43,7 +43,7 @@ class Consumer implements QueueConsumer
         } catch (ResultHandlerException $ex) {
             $this->logger->error('Finishing calculation failed', ['exception' => $ex]);
             $notifierQueue = $this->queueFactory->createNotifierQueue();
-            $calculation->retry($notifierQueue);
+            $calculation->retryNotification($notifierQueue);
             $notifierQueue->close();
         } catch (Exception $ex) {
             $this->logger->error('Finishing calculation failed', ['exception' => $ex]);
