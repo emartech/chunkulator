@@ -20,9 +20,7 @@ class Worker
         $queueFactory = $this->resourceFactory->createQueueFactory();
         $queueFactory->createNotifierQueue()->consume(
             new Consumer(
-                $this->resourceFactory->createResultHandler(),
-                $logger,
-                $this->resourceFactory->createQueueFactory()
+                $this->resourceFactory->createResultHandler(), $logger
             )
         );
         $queueFactory->closeNotifierQueue();
