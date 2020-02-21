@@ -2,47 +2,61 @@
 
 namespace Emartech\Chunkulator\Initiator;
 
+use Emartech\AmqpWrapper\Queue;
+use Emartech\Chunkulator\QueueFactory;
 use Emartech\Chunkulator\Request\Request;
 use Emartech\Chunkulator\ResourceFactory;
 
 class RequestStore
 {
-    private $chunkCalculator;
+    private $chunkSize;
     private $chunkGenerator;
+    private $queueFactory;
 
+
+    public static function calculateChunkCount(int $sourceListCount, int $chunkSize): int
+    {
+        return $sourceListCount > 0 ? ceil($sourceListCount / $chunkSize) : 1;
+    }
 
     public static function create(int $chunkSize, ResourceFactory $resourceFactory): self
     {
         return new self(
-            new ChunkCalculator($chunkSize),
-            new ChunkGenerator(
-                $resourceFactory->createQueueFactory()->createWorkerQueue(),
-                $resourceFactory->createQueueFactory()->createNotifierQueue()
-            ),
+            $chunkSize,
+            new ChunkGenerator(),
+            $resourceFactory->createQueueFactory()
         );
     }
 
-    public function __construct(ChunkCalculator $chunkCalculator, ChunkGenerator $chunkGenerator)
+    public function __construct(int $chunkSize, ChunkGenerator $chunkGenerator, QueueFactory $queueFactory)
     {
-        $this->chunkCalculator = $chunkCalculator;
+        $this->chunkSize = $chunkSize;
         $this->chunkGenerator = $chunkGenerator;
+        $this->queueFactory = $queueFactory;
     }
 
     public function storeRequest(int $sourceListCount, array $requestData, string $requestId): void
     {
-        $chunkCount = $sourceListCount > 0 ? $this->chunkCalculator->calculateChunkCount($sourceListCount) : 1;
-
         $calculationRequest = new Request(
             $requestId,
-            $this->chunkCalculator->getChunkSize(),
-            $chunkCount,
+            $this->chunkSize,
+            self::calculateChunkCount($sourceListCount, $this->chunkSize),
             $requestData
         );
 
+        $queue = $this->createQueue($sourceListCount);
+
+        foreach ($this->chunkGenerator->createChunks($calculationRequest) as $chunk) {
+            $chunk->enqueueIn($queue);
+        }
+    }
+
+    private function createQueue(int $sourceListCount): Queue
+    {
         if ($sourceListCount > 0) {
-            $this->chunkGenerator->createChunks($calculationRequest);
+            return $this->queueFactory->createWorkerQueue();
         } else {
-            $this->chunkGenerator->createEmptyChunk($calculationRequest);
+            return $this->queueFactory->createNotifierQueue();
         }
     }
 }

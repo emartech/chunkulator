@@ -3,6 +3,7 @@
 namespace Emartech\Chunkulator\Test;
 
 use Emartech\AmqpWrapper\Queue;
+use Emartech\Chunkulator\QueueFactory;
 use Emartech\Chunkulator\Test\Helpers\ResourceFactory;
 use Monolog\Logger;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -25,6 +26,9 @@ class IntegrationBaseTestCase extends HelperBaseTestCase
     /** @var MemoryHandler */
     private $handler;
 
+    /** @var QueueFactory */
+    protected $queueFactory;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -33,9 +37,9 @@ class IntegrationBaseTestCase extends HelperBaseTestCase
         $this->logger = new Logger('test', [$this->handler]);
 
         $resourceFactory = new ResourceFactory($this->logger);
-        $queueFactory = $resourceFactory->createQueueFactory();
-        $this->workerQueue = $queueFactory->createWorkerQueue();
-        $this->notifierQueue = $queueFactory->createNotifierQueue();
+        $this->queueFactory = $resourceFactory->createQueueFactory();
+        $this->workerQueue = $this->queueFactory->createWorkerQueue();
+        $this->notifierQueue = $this->queueFactory->createNotifierQueue();
 
         $this->cleanupRabbit();
     }

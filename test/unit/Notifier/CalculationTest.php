@@ -5,7 +5,6 @@ namespace Emartech\Chunkulator\Test\Unit\Notifier;
 use Emartech\AmqpWrapper\Message;
 use Emartech\TestHelper\BaseTestCase;
 use Emartech\Chunkulator\Notifier\ResultHandler;
-use Emartech\Chunkulator\Exception;
 use Emartech\Chunkulator\Notifier\Calculation;
 use Emartech\Chunkulator\Notifier\Consumer;
 use Emartech\Chunkulator\Test\Helpers\CalculationRequest;

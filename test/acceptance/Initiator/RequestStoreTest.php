@@ -2,7 +2,6 @@
 
 namespace Emartech\Chunkulator\Test\Calculator;
 
-use Emartech\Chunkulator\Initiator\ChunkCalculator;
 use Emartech\Chunkulator\Initiator\ChunkGenerator;
 use Emartech\Chunkulator\Initiator\RequestStore;
 use Emartech\Chunkulator\Test\IntegrationBaseTestCase;
@@ -20,13 +19,22 @@ class RequestStoreTest extends IntegrationBaseTestCase
     /** @var SpyConsumer */
     private $notifierConsumer;
 
+    /** @var RequestStore */
+    private $requestStore;
+
 
     protected function setUp(): void
     {
+        parent::setUp();
+
         $this->workerConsumer = new SpyConsumer($this);
         $this->notifierConsumer = new SpyConsumer($this);
 
-        parent::setUp();
+        $this->requestStore = new RequestStore(
+            self::CHUNK_SIZE,
+            new ChunkGenerator(),
+            $this->queueFactory
+        );
     }
 
     /**
@@ -34,11 +42,7 @@ class RequestStoreTest extends IntegrationBaseTestCase
      */
     public function createChunks_userListIsEmpty_enqueuesChunkRequestInNotifierQueue()
     {
-        $requestStore = new RequestStore(
-            new ChunkCalculator(self::CHUNK_SIZE),
-            new ChunkGenerator($this->workerQueue, $this->notifierQueue)
-        );
-        $requestStore->storeRequest(0, [], self::TRIGGER_ID);
+        $this->requestStore->storeRequest(0, [], self::TRIGGER_ID);
 
         $this->workerQueue->consume($this->workerConsumer);
         $this->notifierQueue->consume($this->notifierConsumer);
@@ -59,11 +63,7 @@ class RequestStoreTest extends IntegrationBaseTestCase
      */
     public function createChunks_userListShouldBeChunked_enqueuesChunkRequestInWorkerQueue()
     {
-        $requestStore = new RequestStore(
-            new ChunkCalculator(1),
-            new ChunkGenerator($this->workerQueue, $this->notifierQueue)
-        );
-        $requestStore->storeRequest(2, [], self::TRIGGER_ID);
+        $this->requestStore->storeRequest(2, [], self::TRIGGER_ID);
 
         $this->workerQueue->consume($this->workerConsumer);
         $this->notifierQueue->consume($this->notifierConsumer);
