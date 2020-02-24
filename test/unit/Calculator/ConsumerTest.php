@@ -77,13 +77,13 @@ class ConsumerTest extends BaseTestCase
         $request = CalculationRequest::createChunkRequest($chunkCount, 3, 2);
         $message = $this->createMessage($request);
 
-        $this->expectSourceContactsToBe($contactIds, $request);
+        $this->expectSourceContactsToBe($contactIds, Constants::REQUEST_DATA, 3, 6);
 
         $this->expectFiltering()
-            ->with($request->getCalculationRequest()->getData(), $contactIds)
+            ->with(Constants::REQUEST_DATA, $contactIds)
             ->willReturn($filteredContactIds);
 
-        $this->expectTargetContactToBe($request, $filteredContactIds);
+        $this->expectTargetContactToBe(Constants::REQUEST_DATA, $filteredContactIds);
 
         $this->expectEnqueueToNotifierQueue($this->structure([
             'requestId' => Constants::TRIGGER_ID,
@@ -181,21 +181,21 @@ class ConsumerTest extends BaseTestCase
             ->with($expectedQueueItem);
     }
 
-    private function expectSourceContactsToBe($contactIds, ChunkRequest $request): void
+    private function expectSourceContactsToBe(array $contactIds, array $requestData, int $limit, int $offset): void
     {
         $this->contactListHandler
             ->expects($this->once())
             ->method('getContactsOfList')
-            ->with($request)
+            ->with($requestData, $limit, $offset)
             ->willReturn($contactIds);
     }
 
-    private function expectTargetContactToBe(ChunkRequest $request, $customerIds): void
+    private function expectTargetContactToBe(array $requestData, array $contactIds): void
     {
         $this->contactListHandler
             ->expects($this->once())
             ->method('applyContactsToList')
-            ->with($request, $customerIds);
+            ->with($requestData, $contactIds);
     }
 
     private function expectFailureHandlerCall(): InvocationMocker

@@ -2,10 +2,8 @@
 
 namespace Emartech\Chunkulator\Calculator;
 
-use Emartech\Chunkulator\Request\ChunkRequest;
-
 interface ContactListHandler
 {
-    public function getContactsOfList(ChunkRequest $request): array;
-    public function applyContactsToList(ChunkRequest $request, array $contactIds): void;
+    public function getContactsOfList(array $requestData, int $limit, int $offset): array;
+    public function applyContactsToList(array $requestData, array $contactIds): void;
 }

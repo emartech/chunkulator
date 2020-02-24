@@ -22,7 +22,7 @@ class CalculationRequest
             $requestId,
             $chunkSize,
             $chunkCount,
-            ['dummyRequestData']
+            Constants::REQUEST_DATA
         );
     }
 }

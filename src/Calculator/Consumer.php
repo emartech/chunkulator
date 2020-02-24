@@ -32,12 +32,11 @@ class Consumer implements QueueConsumer
 
     private function calculate(ChunkRequest $request): void
     {
-        $processedContactIds = $this->filter->filterContacts(
-            $request->getCalculationRequest()->getData(),
-            $this->contactLists->getContactsOfList($request)
-        );
+        $requestData = $request->getCalculationRequest()->getData();
 
-        $this->contactLists->applyContactsToList($request, $processedContactIds);
+        $processedContactIds = $this->filter->filterContacts($requestData, $this->getContactsOfChunk($request));
+        $this->contactLists->applyContactsToList($requestData, $processedContactIds);
+
         $this->sendFinishNotification($request);
     }
 
@@ -86,5 +85,14 @@ class Consumer implements QueueConsumer
     {
         $request->enqueueIn($this->queueFactory->createNotifierQueue());
         $this->queueFactory->closeNotifierQueue();
+    }
+
+    private function getContactsOfChunk(ChunkRequest $request): array
+    {
+        return $this->contactLists->getContactsOfList(
+            $request->getCalculationRequest()
+                ->getData(), $request->getCalculationRequest()->chunkSize, $request->getCalculationRequest()
+            ->getChunkOffset($request->getChunkId())
+        );
     }
 }
