@@ -2,12 +2,18 @@
 
 namespace Emartech\Chunkulator\Test\Unit\Notifier;
 
-use Emartech\AmqpWrapper\Message;
+use Emartech\Chunkulator\QueueFactory;
 use Emartech\TestHelper\BaseTestCase;
 use Emartech\Chunkulator\Notifier\ResultHandler;
 use Emartech\Chunkulator\Notifier\Calculation;
 use Emartech\Chunkulator\Notifier\Consumer;
 use Emartech\Chunkulator\Test\Helpers\CalculationRequest;
+use Exception;
+use Interop\Amqp\AmqpConsumer;
+use Interop\Amqp\AmqpContext;
+use Interop\Amqp\AmqpMessage;
+use Interop\Amqp\AmqpProducer;
+use Interop\Amqp\AmqpQueue;
 use PHPUnit\Framework\MockObject\Builder\InvocationMocker;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Rule\InvokedCount;
@@ -15,7 +21,7 @@ use PHPUnit\Framework\MockObject\Rule\InvokedCount;
 class CalculationTest extends BaseTestCase
 {
     /**
-     * @var Message|MockObject
+     * @var AmqpMessage|MockObject
      */
     private $message;
 
@@ -29,13 +35,26 @@ class CalculationTest extends BaseTestCase
      */
     private $resultHandler;
 
+    /** @var AmqpQueue|MockObject */
+    private $notificationQueue;
+
+    /** @var AmqpContext|MockObject */
+    private $context;
+
+    /** @var AmqpProducer|MockObject */
+    private $producer;
+
+    /** @var AmqpConsumer|MockObject */
+    private $amqpConsumer;
+
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->message = $this->createMock(Message::class);
+        $this->message = $this->createMock(AmqpMessage::class);
         $this->consumer = $this->createMock(Consumer::class);
         $this->resultHandler = $this->createMock(ResultHandler::class);
+        $this->mockQueues();
     }
 
     /**
@@ -86,16 +105,47 @@ class CalculationTest extends BaseTestCase
     {
         $this->expectSuccessHandlerCall();
 
-        $this->message->expects($this->once())->method('ack');
+        $this->amqpConsumer->expects($this->once())->method('acknowledge')->with($this->message);
 
         $calculation = new Calculation($this->resultHandler, CalculationRequest::createCalculationRequest(1, 1));
         $calculation->addFinishedChunk(0, $this->message);
 
-        $calculation->finish($this->consumer);
+        $calculation->finish($this->amqpConsumer, $this->consumer);
     }
 
     private function expectSuccessHandlerCall(InvokedCount $invocationRule = null): InvocationMocker
     {
         return $this->resultHandler->expects($invocationRule ?? $this->once())->method('onSuccess');
+    }
+
+    private function mockQueues(): QueueFactory
+    {
+        $this->notificationQueue = $this->createMock(AmqpQueue::class);
+        $this->context = $this->createMock(AmqpContext::class);
+        $this->producer = $this->createMock(AmqpProducer::class);
+        $this->amqpConsumer = $this->createMock(AmqpConsumer::class);
+
+        $queueFactory = $this->createMock(QueueFactory::class);
+        $queueFactory
+            ->expects($this->any())
+            ->method('createNotifierQueue')
+            ->willReturn($this->notificationQueue);
+
+        $queueFactory
+            ->expects($this->any())
+            ->method('createContext')
+            ->willReturn($this->context);
+
+        $this->context
+            ->expects($this->any())
+            ->method('createProducer')
+            ->willReturn($this->producer);
+
+        $this->context
+            ->expects($this->any())
+            ->method('createConsumer')
+            ->willReturn($this->amqpConsumer);
+
+        return $queueFactory;
     }
 }

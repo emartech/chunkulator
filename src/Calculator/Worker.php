@@ -4,6 +4,7 @@ namespace Emartech\Chunkulator\Calculator;
 
 use Emartech\Chunkulator\QueueFactory;
 use Emartech\Chunkulator\ResourceFactory as ResourceFactoryInterface;
+use Enqueue\Consumption\QueueConsumer;
 
 class Worker
 {
@@ -17,11 +18,11 @@ class Worker
     public function run(): void
     {
         $queueFactory = $this->resourceFactory->createQueueFactory();
-        $queueFactory->createWorkerQueue()
-            ->consume(
-                $this->createChunkProcessor($queueFactory)
-            );
-        $queueFactory->closeWorkerQueue();
+        $context = $queueFactory->createContext();
+
+        $consumer = new QueueConsumer($context);
+        $consumer->bind($queueFactory->getWorkerQueueName(), $this->createChunkProcessor($queueFactory));
+        $consumer->consume();
     }
 
     private function createChunkProcessor(QueueFactory $queueFactory): Consumer

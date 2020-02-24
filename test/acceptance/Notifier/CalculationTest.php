@@ -8,16 +8,11 @@ use Emartech\Chunkulator\Notifier\Consumer;
 use Emartech\Chunkulator\Notifier\ResultHandler;
 use Emartech\Chunkulator\Test\Helpers\CalculationRequest;
 use Emartech\Chunkulator\Test\IntegrationBaseTestCase;
+use Interop\Amqp\AmqpConsumer;
 use PHPUnit\Framework\MockObject\MockObject;
-use Test\helper\SpyConsumer;
 
 class CalculationTest extends IntegrationBaseTestCase
 {
-    /**
-     * @var SpyConsumer
-     */
-    private $spyConsumer;
-
     /**
      * @var ResultHandler|MockObject
      */
@@ -26,7 +21,6 @@ class CalculationTest extends IntegrationBaseTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->spyConsumer = new SpyConsumer($this);
         $this->resultHandler = $this->createMock(ResultHandler::class);
 
     }
@@ -39,22 +33,24 @@ class CalculationTest extends IntegrationBaseTestCase
         $ex = new ResultHandlerException();
         $this->resultHandler->expects($this->once())->method('onSuccess')->willThrowException($ex);
 
-        $this->notifierQueue->send(['test message']);
-        $this->notifierQueue->consume($this->spyConsumer);
-        $message = $this->spyConsumer->consumedMessages[0];
+        $amqpProducer = $this->context->createProducer();
 
-        $this->notifierQueue->send(['other message']);
+        $amqpProducer->send($this->notifierQueue, $this->context->createMessage(json_encode(['test message'])));
+        $notifierMessages = $this->getMessagesFromQueue('notifier');
+        $message = $notifierMessages[0];
+
+        $amqpProducer->send($this->notifierQueue, $this->context->createMessage(json_encode(['other message'])));
 
         $calculation = new Calculation($this->resultHandler, CalculationRequest::createCalculationRequest(1, 1));
         $calculation->addFinishedChunk(0, $message);
         $this->assertExceptionThrown($this->identicalTo($ex), function () use ($calculation) {
-            $calculation->finish($this->createMock(Consumer::class));
+            $calculation->finish($this->createMock(AmqpConsumer::class), $this->createMock(Consumer::class));
         });
 
-        $this->notifierQueue->consume($this->spyConsumer);
-        $this->assertCount(2, $this->spyConsumer->consumedMessages);
-        $message2 = $this->spyConsumer->consumedMessages[1];
+        $notifierMessages = $this->getMessagesFromQueue('notifier');
+        $this->assertCount(2, $notifierMessages);
+        $message2 = $notifierMessages[1];
 
-        $this->assertEquals(['other message'], $message2->getContents());
+        $this->assertEquals(['other message'], json_decode($message2->getBody(), true));
     }
 }

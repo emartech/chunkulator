@@ -2,13 +2,13 @@
 
 namespace Emartech\Chunkulator\Request;
 
-use Emartech\AmqpWrapper\Message;
+use Interop\Queue\Message;
 
 class ChunkRequestBuilder
 {
     public static function fromMessage(Message $message)
     {
-        $messageData = $message->getContents();
+        $messageData = json_decode($message->getBody(), true);
 
         return new ChunkRequest(
             new Request(

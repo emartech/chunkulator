@@ -2,8 +2,6 @@
 
 namespace Emartech\Chunkulator\Request;
 
-use Emartech\AmqpWrapper\Queue;
-
 class ChunkRequest
 {
     private $chunkId;
@@ -20,20 +18,15 @@ class ChunkRequest
 
     private function toArray(): array
     {
-        return $this->calculationRequest->getMessageData() + [
+        return $this->calculationRequest->toArray() + [
             'chunkId' => $this->chunkId,
             'tries' => $this->tries,
         ];
     }
 
-    public function enqueueIn(Queue $queue): void
+    public function toJson(): string
     {
-        $queue->send($this->getMessageData());
-    }
-
-    public function getMessageData(): array
-    {
-        return $this->toArray();
+        return json_encode($this->toArray());
     }
 
     public function getCalculationRequest(): Request

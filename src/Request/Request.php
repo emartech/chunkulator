@@ -25,12 +25,7 @@ class Request
         return $this->chunkSize * $chunkId;
     }
 
-    public function getMessageData(): array
-    {
-        return $this->toArray();
-    }
-
-    private function toArray(): array
+    public function toArray(): array
     {
         return [
             'requestId' => $this->requestId,

@@ -2,8 +2,9 @@
 
 namespace Emartech\Chunkulator;
 
-use Emartech\AmqpWrapper\Factory;
-use Emartech\AmqpWrapper\Queue;
+use Interop\Amqp\AmqpConnectionFactory;
+use Interop\Queue\Context;
+use Interop\Queue\Queue;
 use Psr\Log\LoggerInterface;
 
 class QueueFactory
@@ -11,47 +12,49 @@ class QueueFactory
     private $factory;
     private $workerQueueName;
     private $notifierQueueName;
-    private $connectionUrl;
     private $connectionTimeOut;
     private $notificationTTL;
     private $logger;
 
-    public function __construct(LoggerInterface $logger, string $workerQueueName, string $notifierQueueName, string $connectionUrl, int $connectionTimeOut, int $notificationTTL)
+    public function __construct(LoggerInterface $logger, string $workerQueueName, string $notifierQueueName, AmqpConnectionFactory $factory, int $connectionTimeOut, int $notificationTTL)
     {
         $this->workerQueueName = $workerQueueName;
         $this->notifierQueueName = $notifierQueueName;
-        $this->connectionUrl = $connectionUrl;
+        $this->factory = $factory;
         $this->connectionTimeOut = $connectionTimeOut;
         $this->notificationTTL = $notificationTTL;
         $this->logger = $logger;
     }
 
-    public function createWorkerQueue(): Queue
+    public function createContext(): Context
     {
-        return $this->getConnectionPool()->createQueue($this->workerQueueName);
+        return $this->factory->createContext();
     }
 
-    public function createNotifierQueue(): Queue
+    public function createWorkerQueue(Context $context): Queue
     {
-        return $this->getConnectionPool()
-            ->createQueue($this->notifierQueueName, $this->notificationTTL);
+        $queue = $context->createQueue($this->workerQueueName);
+        $context->declareQueue($queue);
+
+        return $queue;
     }
 
-    private function getConnectionPool(): Factory
+    public function createNotifierQueue(Context $context): Queue
     {
-        if (!isset($this->factory)) {
-            $this->factory = new Factory($this->logger, $this->connectionUrl, $this->connectionTimeOut);
-        }
-        return $this->factory;
+        $queue = $context->createQueue($this->notifierQueueName);
+        $queue->setArgument('x-message-ttl', $this->notificationTTL); // use DelayStrategy ?
+        $context->declareQueue($queue);
+
+        return $queue;
     }
 
-    public function closeNotifierQueue()
+    public function getWorkerQueueName(): string
     {
-        return $this->getConnectionPool()->closeQueue($this->notifierQueueName);
+        return $this->workerQueueName;
     }
 
-    public function closeWorkerQueue()
+    public function getNotifierQueueName(): string
     {
-        return $this->getConnectionPool()->closeQueue($this->workerQueueName);
+        return $this->notifierQueueName;
     }
 }

@@ -2,10 +2,11 @@
 
 namespace Emartech\Chunkulator\Initiator;
 
-use Emartech\AmqpWrapper\Queue;
 use Emartech\Chunkulator\QueueFactory;
 use Emartech\Chunkulator\Request\Request;
 use Emartech\Chunkulator\ResourceFactory;
+use Interop\Queue\Context;
+use Interop\Queue\Queue;
 
 class RequestStore
 {
@@ -44,19 +45,20 @@ class RequestStore
             $requestData
         );
 
-        $queue = $this->createQueue($sourceListCount);
+        $context = $this->queueFactory->createContext();
+        $queue = $this->createQueue($context, $sourceListCount);
 
         foreach ($this->chunkGenerator->createChunks($calculationRequest) as $chunk) {
-            $chunk->enqueueIn($queue);
+            $context->createProducer()->send($queue, $context->createMessage($chunk->toJson()));
         }
     }
 
-    private function createQueue(int $sourceListCount): Queue
+    private function createQueue(Context $context, int $sourceListCount): Queue
     {
         if ($sourceListCount > 0) {
-            return $this->queueFactory->createWorkerQueue();
+            return $this->queueFactory->createWorkerQueue($context);
         } else {
-            return $this->queueFactory->createNotifierQueue();
+            return $this->queueFactory->createNotifierQueue($context);
         }
     }
 }
