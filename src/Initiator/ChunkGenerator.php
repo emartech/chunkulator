@@ -7,8 +7,6 @@ use Emartech\Chunkulator\Request\ChunkRequest;
 
 class ChunkGenerator
 {
-    const MAX_RETRY_COUNT = 3;
-
     /** @return ChunkRequest[] */
     public function createChunks(Request $calculationRequest): array
     {
@@ -17,8 +15,7 @@ class ChunkGenerator
         for ($chunkId = 0; $chunkId < $calculationRequest->getChunkCount(); $chunkId++) {
             $chunk = new ChunkRequest(
                 $calculationRequest,
-                $chunkId,
-                self::MAX_RETRY_COUNT
+                $chunkId
             );
 
             $chunks[] = $chunk;

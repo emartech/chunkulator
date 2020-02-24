@@ -6,12 +6,14 @@ use Emartech\AmqpWrapper\Queue;
 
 class ChunkRequest
 {
+    const MAX_RETRY_COUNT = 3;
+
     private $chunkId;
     public $tries;
     private $calculationRequest;
 
 
-    public function __construct(Request $calculationRequest, int $chunkId, int $tries)
+    public function __construct(Request $calculationRequest, int $chunkId, int $tries = self::MAX_RETRY_COUNT)
     {
         $this->calculationRequest = $calculationRequest;
         $this->chunkId = $chunkId;
@@ -44,5 +46,10 @@ class ChunkRequest
     public function getChunkId(): int
     {
         return $this->chunkId;
+    }
+
+    public function resetTries()
+    {
+        $this->tries = self::MAX_RETRY_COUNT;
     }
 }

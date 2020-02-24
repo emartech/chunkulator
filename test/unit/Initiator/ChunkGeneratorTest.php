@@ -64,6 +64,6 @@ class ChunkGeneratorTest extends TestCase
     {
         $this->assertEquals($chunkId, $chunk->getChunkId());
         $this->assertEquals($calculationRequest, $chunk->getCalculationRequest());
-        $this->assertEquals(ChunkGenerator::MAX_RETRY_COUNT, $chunk->tries);
+        $this->assertEquals(ChunkRequest::MAX_RETRY_COUNT, $chunk->tries);
     }
 }

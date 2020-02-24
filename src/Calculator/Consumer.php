@@ -83,6 +83,7 @@ class Consumer implements QueueConsumer
 
     private function sendFinishNotification(ChunkRequest $request): void
     {
+        $request->resetTries();
         $request->enqueueIn($this->queueFactory->createNotifierQueue());
         $this->queueFactory->closeNotifierQueue();
     }
