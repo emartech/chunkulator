@@ -38,7 +38,6 @@ class Consumer implements Processor
         $processedContactIds = $this->filter->filterContacts($requestData, $this->getContactsOfChunk($request));
         $this->contactLists->applyContactsToList($requestData, $processedContactIds);
 
-        $this->contactLists->applyContactsToList($request, $processedContactIds);
         $this->sendFinishNotification($context, $request);
     }
 
