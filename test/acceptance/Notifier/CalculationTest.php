@@ -36,7 +36,7 @@ class CalculationTest extends IntegrationBaseTestCase
         $amqpProducer = $this->context->createProducer();
 
         $amqpProducer->send($this->notifierQueue, $this->context->createMessage(json_encode(['test message'])));
-        $notifierMessages = $this->getMessagesFromQueue('notifier');
+        $notifierMessages = $this->getMessagesFromQueue($this->notifierQueue);
         $message = $notifierMessages[0];
 
         $amqpProducer->send($this->notifierQueue, $this->context->createMessage(json_encode(['other message'])));
@@ -47,7 +47,7 @@ class CalculationTest extends IntegrationBaseTestCase
             $calculation->finish($this->createMock(AmqpConsumer::class), $this->createMock(Consumer::class));
         });
 
-        $notifierMessages = $this->getMessagesFromQueue('notifier');
+        $notifierMessages = $this->getMessagesFromQueue($this->notifierQueue);
         $this->assertCount(2, $notifierMessages);
         $message2 = $notifierMessages[1];
 

@@ -34,8 +34,8 @@ class RequestStoreTest extends IntegrationBaseTestCase
     {
         $this->requestStore->storeRequest(0, [], self::TRIGGER_ID);
 
-        $workerMessages = $this->getMessagesFromQueue('worker');
-        $notifierMessages = $this->getMessagesFromQueue('notifier');
+        $workerMessages = $this->getMessagesFromQueue($this->workerQueue);
+        $notifierMessages = $this->getMessagesFromQueue($this->notifierQueue);
 
         $this->assertEmpty($workerMessages);
         $this->assertEquals([
@@ -55,8 +55,8 @@ class RequestStoreTest extends IntegrationBaseTestCase
     {
         $this->requestStore->storeRequest(2, [], self::TRIGGER_ID);
 
-        $workerMessages = $this->getMessagesFromQueue('worker');
-        $notifierMessages = $this->getMessagesFromQueue('notifier');
+        $workerMessages = $this->getMessagesFromQueue($this->workerQueue);
+        $notifierMessages = $this->getMessagesFromQueue($this->notifierQueue);
 
         $this->assertEquals([
             'requestId' => self::TRIGGER_ID,

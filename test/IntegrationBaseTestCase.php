@@ -78,9 +78,8 @@ class IntegrationBaseTestCase extends HelperBaseTestCase
     }
 
     /** @return AmqpMessage[] */
-    protected function getMessagesFromQueue(string $queueName): array
+    protected function getMessagesFromQueue(Queue $queue): array
     {
-        $queue = $this->context->createQueue($queueName);
         $consumer = $this->context->createConsumer($queue);
 
         $messages = [];
