@@ -18,13 +18,13 @@ class Worker
     public function run(LoggerInterface $logger): void
     {
         $queueFactory = $this->resourceFactory->createQueueFactory();
-        $queueFactory->createNotifierQueue()->consume(
+        $context = $queueFactory->createContext();
+        $queueFactory->createNotifierQueue($context)->consume(
             new Consumer(
                 $this->resourceFactory->createResultHandler(),
                 $logger,
                 $this->resourceFactory->createQueueFactory()
             )
         );
-        $queueFactory->closeNotifierQueue();
     }
 }
