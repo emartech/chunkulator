@@ -34,6 +34,7 @@ class QueueFactory
     public function createWorkerQueue(Context $context): Queue
     {
         $queue = $context->createQueue($this->workerQueueName);
+        $queue->addFlag(AmqpQueue::FLAG_DURABLE);
         $context->declareQueue($queue);
 
         return $queue;
@@ -42,6 +43,7 @@ class QueueFactory
     public function createNotifierQueue(Context $context): Queue
     {
         $queue = $context->createQueue($this->notifierQueueName);
+        $queue->addFlag(AmqpQueue::FLAG_DURABLE);
         $queue->setArgument('x-message-ttl', $this->notificationTTL); // use DelayStrategy ?
         $context->declareQueue($queue);
 
