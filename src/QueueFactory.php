@@ -60,4 +60,9 @@ class QueueFactory
     {
         return $this->notifierQueueName;
     }
+
+    public function getConnectionTimeOut(): int
+    {
+        return $this->connectionTimeOut;
+    }
 }

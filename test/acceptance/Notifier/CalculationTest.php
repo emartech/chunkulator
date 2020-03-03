@@ -5,26 +5,12 @@ namespace Emartech\Chunkulator\Test\Acceptance;
 use Emartech\Chunkulator\Exception as ResultHandlerException;
 use Emartech\Chunkulator\Notifier\Calculation;
 use Emartech\Chunkulator\Notifier\Consumer;
-use Emartech\Chunkulator\Notifier\ResultHandler;
 use Emartech\Chunkulator\Test\Helpers\CalculationRequest;
 use Emartech\Chunkulator\Test\IntegrationBaseTestCase;
 use Interop\Amqp\AmqpConsumer;
-use PHPUnit\Framework\MockObject\MockObject;
 
 class CalculationTest extends IntegrationBaseTestCase
 {
-    /**
-     * @var ResultHandler|MockObject
-     */
-    private $resultHandler;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->resultHandler = $this->createMock(ResultHandler::class);
-
-    }
-
     /**
      * @test
      */

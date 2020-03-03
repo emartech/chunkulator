@@ -2,6 +2,7 @@
 
 namespace Emartech\Chunkulator\Test;
 
+use Emartech\Chunkulator\Notifier\ResultHandler;
 use Emartech\Chunkulator\QueueFactory;
 use Emartech\Chunkulator\Test\Helpers\ResourceFactory;
 use Interop\Queue\Context;
@@ -16,7 +17,7 @@ use Throwable;
 class IntegrationBaseTestCase extends HelperBaseTestCase
 {
     /** @var MockObject|LoggerInterface */
-    protected $logger;
+    public $logger;
 
     /** @var Queue */
     protected $workerQueue;
@@ -36,6 +37,9 @@ class IntegrationBaseTestCase extends HelperBaseTestCase
     /** @var QueueFactory */
     protected $queueFactory;
 
+    /** @var ResultHandler|MockObject */
+    public $resultHandler;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -43,7 +47,8 @@ class IntegrationBaseTestCase extends HelperBaseTestCase
         $this->handler = new MemoryHandler(Logger::DEBUG);
         $this->logger = new Logger('test', [$this->handler]);
 
-        $this->resourceFactory = new ResourceFactory($this->logger);
+        $this->resultHandler = $this->createMock(ResultHandler::class);
+        $this->resourceFactory = new ResourceFactory($this);
         $this->queueFactory = $this->resourceFactory->createQueueFactory();
         $this->context = $this->queueFactory->createContext();
 
@@ -96,5 +101,14 @@ class IntegrationBaseTestCase extends HelperBaseTestCase
         }
 
         return $messages;
+    }
+
+    protected function sendMessage(Queue $queue, string $messageBody): void
+    {
+        $producer = $this->context->createProducer();
+        $producer->send(
+            $queue,
+            $this->context->createMessage($messageBody)
+        );
     }
 }

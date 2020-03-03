@@ -49,10 +49,10 @@ class Consumer
         }
     }
 
-    public function timeOut(): void
+    public function timeOut(AmqpConsumer $consumer): void
     {
         foreach ($this->calculations as $requestId => $calculation) {
-            $calculation->requeue();
+            $calculation->requeue($consumer);
             $this->removeCalculation($requestId);
         }
     }

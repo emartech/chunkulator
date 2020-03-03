@@ -49,11 +49,10 @@ class Calculation
         }
     }
 
-    public function requeue(): void
+    public function requeue(AmqpConsumer $consumer): void
     {
         foreach ($this->messages as $message) {
-            $message->publish();
-            $message->discard();
+            $consumer->reject($message, true); // TODO: requeue as new message at the end of the queue
         }
     }
 

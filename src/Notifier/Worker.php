@@ -3,6 +3,7 @@
 namespace Emartech\Chunkulator\Notifier;
 
 use Emartech\Chunkulator\ResourceFactory as ResourceFactoryInterface;
+use Emartech\Chunkulator\Notifier\Consumer as Processor;
 use Psr\Log\LoggerInterface;
 
 class Worker
@@ -19,12 +20,24 @@ class Worker
     {
         $queueFactory = $this->resourceFactory->createQueueFactory();
         $context = $queueFactory->createContext();
-        $queueFactory->createNotifierQueue($context)->consume(
-            new Consumer(
+        $queue = $queueFactory->createNotifierQueue($context);
+        $consumer = $context->createConsumer($queue);
+
+        $processor =
+            new Processor(
                 $this->resourceFactory->createResultHandler(),
                 $logger,
-                $this->resourceFactory->createQueueFactory()
-            )
-        );
+                $queueFactory
+            );
+
+        do {
+            $message = $consumer->receive($queueFactory->getConnectionTimeOut());
+            if ($message) {
+                $processor->consume($consumer, $message);
+            } else {
+                $processor->timeOut($consumer);
+            }
+        }
+        while ($message);
     }
 }
