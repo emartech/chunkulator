@@ -3,6 +3,7 @@
 namespace Emartech\Chunkulator;
 
 use Interop\Amqp\AmqpConnectionFactory;
+use Interop\Amqp\Impl\AmqpQueue;
 use Interop\Queue\Context;
 use Interop\Queue\Queue;
 use Psr\Log\LoggerInterface;
