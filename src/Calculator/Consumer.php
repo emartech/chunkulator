@@ -31,14 +31,14 @@ class Consumer implements Processor
         $this->filter = $filter;
     }
 
-    private function calculate(Context $context, ChunkRequest $request): void
+    private function calculate(ChunkRequest $request): void
     {
         $requestData = $request->getCalculationRequest()->getData();
 
         $processedContactIds = $this->filter->filterContacts($requestData, $this->getContactsOfChunk($request));
         $this->contactLists->applyContactsToList($requestData, $processedContactIds);
 
-        $this->sendFinishNotification($context, $request);
+        $this->sendFinishNotification($request);
     }
 
     public function getPrefetchCount(): int
@@ -51,7 +51,7 @@ class Consumer implements Processor
         $request = ChunkRequestBuilder::fromMessage($message);
 
         try {
-            $this->calculate($context, $request);
+            $this->calculate($request);
         } catch (Throwable $t) {
             $this->resultHandler->onError($request->getCalculationRequest()->getData(), $t);
             $this->retry($context, $request);
@@ -81,10 +81,12 @@ class Consumer implements Processor
     {
     }
 
-    private function sendFinishNotification(Context $context, ChunkRequest $request): void
+    private function sendFinishNotification(ChunkRequest $request): void
     {
+        $context = $this->queueFactory->createContext();
         $queue = $this->queueFactory->createNotifierQueue($context);
         $context->createProducer()->send($queue, $context->createMessage($request->toJson()));
+        $context->close();
     }
 
     private function getContactsOfChunk(ChunkRequest $request): array
