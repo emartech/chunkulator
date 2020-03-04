@@ -63,6 +63,6 @@ class QueueFactory
 
     public function getConnectionTimeOut(): int
     {
-        return $this->connectionTimeOut;
+        return $this->connectionTimeOut * 1000;
     }
 }
