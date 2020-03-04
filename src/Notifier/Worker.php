@@ -39,5 +39,7 @@ class Worker
             }
         }
         while ($message);
+
+        $context->close();
     }
 }
