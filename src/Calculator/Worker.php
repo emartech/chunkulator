@@ -5,6 +5,7 @@ namespace Emartech\Chunkulator\Calculator;
 use Emartech\Chunkulator\QueueFactory;
 use Emartech\Chunkulator\ResourceFactory as ResourceFactoryInterface;
 use Enqueue\Consumption\QueueConsumer;
+use Psr\Log\LoggerInterface;
 
 class Worker
 {
