@@ -15,12 +15,12 @@ class Worker
         $this->resourceFactory = $resourceFactory;
     }
 
-    public function run(): void
+    public function run(LoggerInterface $logger = null): void
     {
         $queueFactory = $this->resourceFactory->createQueueFactory();
         $context = $queueFactory->createContext();
 
-        $consumer = new QueueConsumer($context);
+        $consumer = new QueueConsumer($context, null, [], $logger);
         $consumer->bind($queueFactory->getWorkerQueueName(), $this->createChunkProcessor($queueFactory));
         $consumer->consume();
     }
