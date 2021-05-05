@@ -7,7 +7,7 @@ use Emartech\AmqpWrapper\Queue;
 use Emartech\Chunkulator\Request\ChunkRequestBuilder;
 use Emartech\Chunkulator\Request\Request;
 use Emartech\Chunkulator\Exception;
-use Throwable;
+use Psr\Log\LoggerInterface;
 
 class Calculation
 {
@@ -16,12 +16,14 @@ class Calculation
 
     /** @var Message[] */
     private $messages = [];
+    private $logger;
 
 
-    public function __construct(ResultHandler $resultHandler, Request $calculationRequest)
+    public function __construct(ResultHandler $resultHandler, Request $calculationRequest, LoggerInterface $logger)
     {
         $this->calculationRequest = $calculationRequest;
         $this->resultHandler = $resultHandler;
+        $this->logger = $logger;
     }
 
     public function addFinishedChunk(int $chunkId, Message $message)
@@ -35,6 +37,10 @@ class Calculation
      */
     public function finish(Consumer $calculationContainer)
     {
+        $this->logger->debug('Finish start', [
+            'all_chunks_done' => $this->allChunksDone()
+        ]);
+
         if ($this->allChunksDone()) {
             $this->resultHandler->onSuccess($this->calculationRequest->getData());
             $this->ackMessages();
