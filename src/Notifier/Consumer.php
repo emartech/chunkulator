@@ -35,6 +35,10 @@ class Consumer
 
     public function consume(AmqpConsumer $consumer, AmqpMessageInterface $message): void
     {
+        $this->logger->debug('consume start', [
+            'message' => $message->getBody()
+        ]);
+
         $chunkRequest = ChunkRequestBuilder::fromMessage($message);
         $calculation = $this->getCalculation($chunkRequest);
         $calculation->addFinishedChunk($chunkRequest->getChunkId(), $message);
@@ -47,6 +51,10 @@ class Consumer
             $this->logger->error('Finishing calculation failed', ['exception' => $ex]);
             throw $ex;
         }
+
+        $this->logger->debug('consume end', [
+            'message' => $message->getBody()
+        ]);
     }
 
     public function timeOut(AmqpConsumer $consumer): void
@@ -67,7 +75,7 @@ class Consumer
         $calculationRequest = $chunkRequest->getCalculationRequest();
         $requestId = $calculationRequest->getRequestId();
         if (!isset($this->calculations[$requestId])) {
-            $this->calculations[$requestId] = new Calculation($this->resultHandler, $calculationRequest);
+            $this->calculations[$requestId] = new Calculation($this->resultHandler, $calculationRequest, $this->logger);
         }
         return $this->calculations[$requestId];
     }
