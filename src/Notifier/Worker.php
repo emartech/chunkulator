@@ -18,20 +18,20 @@ class Worker
 
     public function run(LoggerInterface $logger): void
     {
-        $logger->debug('run start');
         $queueFactory = $this->resourceFactory->createQueueFactory();
         $context = $queueFactory->createContext();
         $queue = $queueFactory->createNotifierQueue($context);
         $consumer = $context->createConsumer($queue);
 
-        $processor = new Processor($this->resourceFactory->createResultHandler(), $logger, $queueFactory);
+        $processor =
+            new Processor(
+                $this->resourceFactory->createResultHandler(),
+                $logger,
+                $queueFactory
+            );
 
         do {
             $message = $consumer->receive($queueFactory->getConnectionTimeOut());
-            $logger->debug('message received', [
-                'message' => $message
-            ]);
-
             if ($message) {
                 $processor->consume($consumer, $message);
             } else {
@@ -39,6 +39,5 @@ class Worker
             }
         }
         while ($message);
-        $logger->debug('run end');
     }
 }
