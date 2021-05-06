@@ -2,19 +2,18 @@
 
 namespace Emartech\Chunkulator\Notifier;
 
-use Emartech\AmqpWrapper\Message;
-use Emartech\AmqpWrapper\Queue;
+use Interop\Amqp\AmqpConsumer;
+use Interop\Amqp\AmqpMessage;
 use Emartech\Chunkulator\Request\ChunkRequestBuilder;
 use Emartech\Chunkulator\Request\Request;
-use Emartech\Chunkulator\Exception;
-use Throwable;
+use Emartech\Chunkulator\QueueFactory;
 
 class Calculation
 {
     private $resultHandler;
     private $calculationRequest;
 
-    /** @var Message[] */
+    /** @var AmqpMessage[] */
     private $messages = [];
 
 
@@ -24,20 +23,16 @@ class Calculation
         $this->resultHandler = $resultHandler;
     }
 
-    public function addFinishedChunk(int $chunkId, Message $message)
+    public function addFinishedChunk(int $chunkId, AmqpMessage $message)
     {
-        $this->messages[$chunkId] = $message;
+        $this->addMessage($chunkId, $message);
     }
 
-    /**
-     * @param Consumer $calculationContainer
-     * @throws Exception
-     */
-    public function finish(Consumer $calculationContainer)
+    public function finish(AmqpConsumer $consumer, Consumer $calculationContainer)
     {
         if ($this->allChunksDone()) {
             $this->resultHandler->onSuccess($this->calculationRequest->getData());
-            $this->ackMessages();
+            $this->ackMessages($consumer);
             $calculationContainer->removeCalculation($this->calculationRequest->getRequestId());
         }
     }
@@ -47,25 +42,24 @@ class Calculation
         return empty(array_diff($this->allChunkIds(), array_keys($this->messages)));
     }
 
-    private function ackMessages(): void
+    private function ackMessages(AmqpConsumer $consumer): void
     {
         foreach ($this->messages as $message) {
-            $message->ack();
+            $consumer->acknowledge($message);
         }
     }
 
-    public function requeue(): void
+    public function requeue(AmqpConsumer $consumer): void
     {
         foreach ($this->messages as $message) {
-            $message->publish();
-            $message->discard();
+            $consumer->reject($message, true); // TODO: requeue as new message at the end of the queue
         }
     }
 
-    public function discard(): void
+    public function discard(AmqpConsumer $consumer): void
     {
         foreach ($this->messages as $message) {
-            $message->discard();
+            $consumer->reject($message, false);
         }
     }
 
@@ -74,20 +68,26 @@ class Calculation
         return range(0, $this->calculationRequest->getChunkCount() - 1);
     }
 
-    public function retryNotification(Queue $notifierQueue)
+    public function retryNotification(QueueFactory $queueFactory, AmqpConsumer $consumer)
     {
-        foreach ($this->messages as $message) {
-            $this->retryChunk($notifierQueue, $message);
+        $context = $queueFactory->createContext();
+        $notifierQueue = $queueFactory->createNotifierQueue($context);
+        $producer = $context->createProducer();
+
+        foreach ($this->messages as $chunkId => $message) {
+            $chunk = ChunkRequestBuilder::fromMessage($message);
+            if ($chunk->tries > 0) {
+                $chunk->tries--;
+            }
+            $producer->send($notifierQueue, $context->createMessage($chunk->toJson()));
         }
-        $this->discard();
+        $this->discard($consumer);
+
+        $context->close();
     }
 
-    private function retryChunk(Queue $notifierQueue, Message $message): void
+    private function addMessage(int $chunkId, AmqpMessage $message): void
     {
-        $request = ChunkRequestBuilder::fromMessage($message);
-        if ($request->tries > 0) {
-            $request->tries--;
-            $request->enqueueIn($notifierQueue);
-        }
+        $this->messages[$chunkId] = $message;
     }
 }

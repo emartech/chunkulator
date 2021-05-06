@@ -2,15 +2,16 @@
 
 namespace Emartech\Chunkulator\Calculator;
 
-use Emartech\AmqpWrapper\Message;
-use Emartech\AmqpWrapper\QueueConsumer;
 use Emartech\Chunkulator\Request\ChunkRequestBuilder;
 use Emartech\Chunkulator\Notifier\ResultHandler;
 use Emartech\Chunkulator\QueueFactory;
 use Emartech\Chunkulator\Request\ChunkRequest;
+use Interop\Queue\Context;
+use Interop\Queue\Message;
+use Interop\Queue\Processor;
 use Throwable;
 
-class Consumer implements QueueConsumer
+class Consumer implements Processor
 {
     private $contactLists;
     private $resultHandler;
@@ -45,33 +46,32 @@ class Consumer implements QueueConsumer
         return 1;
     }
 
-    public function consume(Message $message): void
+    public function process(Message $message, Context $context)
     {
         $request = ChunkRequestBuilder::fromMessage($message);
 
         try {
             $this->calculate($request);
-            $message->ack();
         } catch (Throwable $t) {
             $this->resultHandler->onError($request->getCalculationRequest()->getData(), $t);
-            $this->retry($message, $request);
+            $this->retry($context, $request);
+            return self::REJECT;
         }
+
+        return self::ACK;
     }
 
-    private function retry(Message $message, ChunkRequest $request): void
+    private function retry(Context $context, ChunkRequest $request)
     {
-        $workerQueue = $this->queueFactory->createWorkerQueue();
+        $workerQueue = $this->queueFactory->createWorkerQueue($context);
         if ($request->tries > 0) {
             $request->tries--;
-            $request->enqueueIn($workerQueue);
-            $message->discard();
+            $context->createProducer()->send($workerQueue, $context->createMessage($request->toJson()));
         } else {
             try {
                 $this->resultHandler->onFailure($request->getCalculationRequest()->getData());
-                $message->discard();
             } catch (Throwable $t) {
-                $request->enqueueIn($workerQueue);
-                $message->discard();
+                $context->createProducer()->send($workerQueue, $context->createMessage($request->toJson()));
                 throw $t;
             }
         }
@@ -83,9 +83,10 @@ class Consumer implements QueueConsumer
 
     private function sendFinishNotification(ChunkRequest $request): void
     {
-        $request->resetTries();
-        $request->enqueueIn($this->queueFactory->createNotifierQueue());
-        $this->queueFactory->closeNotifierQueue();
+        $context = $this->queueFactory->createContext();
+        $queue = $this->queueFactory->createNotifierQueue($context);
+        $context->createProducer()->send($queue, $context->createMessage($request->toJson()));
+        $context->close();
     }
 
     private function getContactsOfChunk(ChunkRequest $request): array

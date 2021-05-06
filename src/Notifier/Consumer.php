@@ -2,17 +2,17 @@
 
 namespace Emartech\Chunkulator\Notifier;
 
-use Emartech\AmqpWrapper\Message;
-use Emartech\AmqpWrapper\QueueConsumer;
 use Emartech\Chunkulator\QueueFactory;
 use Emartech\Chunkulator\Request\ChunkRequest;
 use Emartech\Chunkulator\Request\ChunkRequestBuilder;
 use Exception;
+use Interop\Amqp\AmqpConsumer;
+use Interop\Amqp\AmqpMessage as AmqpMessageInterface;
 use Emartech\Chunkulator\Exception as ResultHandlerException;
 use Psr\Log\LoggerInterface;
 
 
-class Consumer implements QueueConsumer
+class Consumer
 {
     private $resultHandler;
     private $logger;
@@ -33,28 +33,26 @@ class Consumer implements QueueConsumer
         return null;
     }
 
-    public function consume(Message $message): void
+    public function consume(AmqpConsumer $consumer, AmqpMessageInterface $message): void
     {
         $chunkRequest = ChunkRequestBuilder::fromMessage($message);
         $calculation = $this->getCalculation($chunkRequest);
         $calculation->addFinishedChunk($chunkRequest->getChunkId(), $message);
         try {
-            $calculation->finish($this);
+            $calculation->finish($consumer, $this);
         } catch (ResultHandlerException $ex) {
             $this->logger->error('Finishing calculation failed', ['exception' => $ex]);
-            $notifierQueue = $this->queueFactory->createNotifierQueue();
-            $calculation->retryNotification($notifierQueue);
-            $notifierQueue->close();
+            $calculation->retryNotification($this->queueFactory, $consumer);
         } catch (Exception $ex) {
             $this->logger->error('Finishing calculation failed', ['exception' => $ex]);
             throw $ex;
         }
     }
 
-    public function timeOut(): void
+    public function timeOut(AmqpConsumer $consumer): void
     {
         foreach ($this->calculations as $requestId => $calculation) {
-            $calculation->requeue();
+            $calculation->requeue($consumer);
             $this->removeCalculation($requestId);
         }
     }

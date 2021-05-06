@@ -5,19 +5,12 @@ namespace Emartech\Chunkulator\Test\Calculator;
 use Emartech\Chunkulator\Initiator\ChunkGenerator;
 use Emartech\Chunkulator\Initiator\RequestStore;
 use Emartech\Chunkulator\Test\IntegrationBaseTestCase;
-use Test\helper\SpyConsumer;
 
 
 class RequestStoreTest extends IntegrationBaseTestCase
 {
     const CHUNK_SIZE = 1;
     const TRIGGER_ID = 'trigger_id';
-
-    /** @var SpyConsumer */
-    private $workerConsumer;
-
-    /** @var SpyConsumer */
-    private $notifierConsumer;
 
     /** @var RequestStore */
     private $requestStore;
@@ -26,9 +19,6 @@ class RequestStoreTest extends IntegrationBaseTestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        $this->workerConsumer = new SpyConsumer($this);
-        $this->notifierConsumer = new SpyConsumer($this);
 
         $this->requestStore = new RequestStore(
             self::CHUNK_SIZE,
@@ -44,10 +34,10 @@ class RequestStoreTest extends IntegrationBaseTestCase
     {
         $this->requestStore->storeRequest(0, [], self::TRIGGER_ID);
 
-        $this->workerQueue->consume($this->workerConsumer);
-        $this->notifierQueue->consume($this->notifierConsumer);
+        $workerMessages = $this->getMessagesFromQueue($this->workerQueue);
+        $notifierMessages = $this->getMessagesFromQueue($this->notifierQueue);
 
-        $this->assertEmpty($this->workerConsumer->consumedMessages);
+        $this->assertEmpty($workerMessages);
         $this->assertEquals([
             'requestId' => self::TRIGGER_ID,
             'chunkSize' => self::CHUNK_SIZE,
@@ -55,7 +45,7 @@ class RequestStoreTest extends IntegrationBaseTestCase
             'data' => [],
             'chunkId' => 0,
             'tries' => 3,
-        ], $this->notifierConsumer->consumedMessages[0]->getContents());
+        ], json_decode($notifierMessages[0]->getBody(), true));
     }
 
     /**
@@ -65,8 +55,8 @@ class RequestStoreTest extends IntegrationBaseTestCase
     {
         $this->requestStore->storeRequest(2, [], self::TRIGGER_ID);
 
-        $this->workerQueue->consume($this->workerConsumer);
-        $this->notifierQueue->consume($this->notifierConsumer);
+        $workerMessages = $this->getMessagesFromQueue($this->workerQueue);
+        $notifierMessages = $this->getMessagesFromQueue($this->notifierQueue);
 
         $this->assertEquals([
             'requestId' => self::TRIGGER_ID,
@@ -75,7 +65,7 @@ class RequestStoreTest extends IntegrationBaseTestCase
             'data' => [],
             'chunkId' => 0,
             'tries' => 3,
-        ], $this->workerConsumer->consumedMessages[0]->getContents());
+        ], json_decode($workerMessages[0]->getBody(), true));
 
         $this->assertEquals([
             'requestId' => self::TRIGGER_ID,
@@ -84,8 +74,8 @@ class RequestStoreTest extends IntegrationBaseTestCase
             'data' => [],
             'chunkId' => 1,
             'tries' => 3,
-        ], $this->workerConsumer->consumedMessages[1]->getContents());
+        ], json_decode($workerMessages[1]->getBody(), true));
 
-        $this->assertEmpty($this->notifierConsumer->consumedMessages);
+        $this->assertEmpty($notifierMessages);
     }
 }
