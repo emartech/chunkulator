@@ -35,17 +35,10 @@ class Consumer implements QueueConsumer
 
     public function consume(Message $message): void
     {
-        $this->logger->debug('Start consuming', [
-            'message' => $message->getRawBody()
-        ]);
         $chunkRequest = ChunkRequestBuilder::fromMessage($message);
         $calculation = $this->getCalculation($chunkRequest);
         $calculation->addFinishedChunk($chunkRequest->getChunkId(), $message);
         try {
-            $this->logger->debug('AddFinishedChunk success', [
-                'message' => $message->getRawBody(),
-                'finished_ids' => array_keys($this->calculations)
-            ]);
             $calculation->finish($this);
         } catch (ResultHandlerException $ex) {
             $this->logger->error('Finishing calculation failed', ['exception' => $ex]);
@@ -76,7 +69,7 @@ class Consumer implements QueueConsumer
         $calculationRequest = $chunkRequest->getCalculationRequest();
         $requestId = $calculationRequest->getRequestId();
         if (!isset($this->calculations[$requestId])) {
-            $this->calculations[$requestId] = new Calculation($this->resultHandler, $calculationRequest, $this->logger);
+            $this->calculations[$requestId] = new Calculation($this->resultHandler, $calculationRequest);
         }
         return $this->calculations[$requestId];
     }
