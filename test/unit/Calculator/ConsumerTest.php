@@ -120,7 +120,7 @@ class ConsumerTest extends BaseTestCase
         $message = $this->createMessage($request);
 
         $this->expectFiltering()->willThrowException($this->createMock(Throwable::class));
-        $this->expectEnqueueToWorkerQueue(); // ->with($this->structure(['tries' => 0]));
+        $this->expectEnqueueToWorkerQueue(CalculationRequest::createChunkRequest(1, 1, 0, 0), $message);
 
         $this->resultHandler->expects($this->never())->method('onFailure');
 
@@ -152,12 +152,7 @@ class ConsumerTest extends BaseTestCase
         $this->expectFiltering()->willThrowException($this->createMock(Throwable::class));
         $this->expectFailureHandlerCall()->willThrowException($this->createMock(Throwable::class));
 
-        $this->expectEnqueueToWorkerQueue()
-            /* TODO: fix assert
-            ->with($this->structure([
-                'tries' => 0
-            ]))*/
-            ;
+        $this->expectEnqueueToWorkerQueue($request, $message);
 
         try {
             $this->consumer->process($message, $this->context);
@@ -218,9 +213,15 @@ class ConsumerTest extends BaseTestCase
         return $this->filter->expects($this->once())->method('filterContacts');
     }
 
-    private function expectEnqueueToWorkerQueue(): InvocationMocker
+    private function expectEnqueueToWorkerQueue(ChunkRequest $chunkRequest, Message $message)
     {
-        return $this->producer->expects($this->once())->method('send');
+        $this->context
+            ->expects($this->once())
+            ->method('createMessage')
+            ->with($chunkRequest->toJson())
+            ->willReturn($message);
+
+        $this->producer->expects($this->once())->method('send')->with($this->workerQueue, $message);
     }
 
     private function mockQueues(): QueueFactory
