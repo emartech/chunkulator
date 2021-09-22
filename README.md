@@ -1,4 +1,14 @@
-# php-contact-list-processor
-Lib for filtering large contact lists effectively
+# Chunkulator
+Lib for resolving contact lists. 
 
 Copyright EMARSYS 2019 All rights reserved.
+
+### Setting up a development environment
+```
+make all
+```
+
+### Testing
+```
+make test
+```
