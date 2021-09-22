@@ -31,7 +31,7 @@ class Consumer implements Processor
         $this->filter = $filter;
     }
 
-    private function calculate(ChunkRequest $request): void
+    private function calculate(ChunkRequest $request)
     {
         $requestData = $request->getCalculationRequest()->getData();
 
@@ -41,7 +41,7 @@ class Consumer implements Processor
         $this->sendFinishNotification($request);
     }
 
-    public function process(Message $message, Context $context)
+    public function process(Message $message, Context $context): string
     {
         $request = ChunkRequestBuilder::fromMessage($message);
 
@@ -72,11 +72,11 @@ class Consumer implements Processor
         }
     }
 
-    public function timeOut(): void
+    public function timeOut()
     {
     }
 
-    private function sendFinishNotification(ChunkRequest $request): void
+    private function sendFinishNotification(ChunkRequest $request)
     {
         $context = $this->queueFactory->createContext();
         $queue = $this->queueFactory->createNotifierQueue($context);
@@ -87,9 +87,9 @@ class Consumer implements Processor
     private function getContactsOfChunk(ChunkRequest $request): array
     {
         return $this->contactLists->getContactsOfList(
-            $request->getCalculationRequest()
-                ->getData(), $request->getCalculationRequest()->chunkSize, $request->getCalculationRequest()
-            ->getChunkOffset($request->getChunkId())
+            $request->getCalculationRequest()->getData(),
+            $request->getCalculationRequest()->chunkSize,
+            $request->getCalculationRequest()->getChunkOffset($request->getChunkId())
         );
     }
 }
