@@ -41,11 +41,6 @@ class Consumer implements Processor
         $this->sendFinishNotification($request);
     }
 
-    public function getPrefetchCount(): int
-    {
-        return 1;
-    }
-
     public function process(Message $message, Context $context)
     {
         $request = ChunkRequestBuilder::fromMessage($message);
