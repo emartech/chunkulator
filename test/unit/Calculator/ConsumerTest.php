@@ -11,12 +11,12 @@ use Emartech\Chunkulator\Notifier\ResultHandler;
 use Emartech\Chunkulator\Request\ChunkRequest;
 use Emartech\Chunkulator\Test\Helpers\CalculationRequest;
 use Emartech\Chunkulator\Test\Helpers\Constants;
-use Interop\Amqp\AmqpConsumer;
 use Interop\Amqp\AmqpContext;
 use Interop\Amqp\AmqpProducer;
 use Interop\Amqp\AmqpQueue;
 use Interop\Queue\Message;
 use Interop\Queue\Processor;
+use Interop\Queue\Queue;
 use PHPUnit\Framework\MockObject\Builder\InvocationMocker;
 use PHPUnit\Framework\MockObject\MockObject;
 use Throwable;
@@ -57,14 +57,11 @@ class ConsumerTest extends BaseTestCase
      * @var AmqpContext|MockObject
      */
     private $context;
+
     /**
      * @var AmqpProducer|MockObject
      */
     private $producer;
-    /**
-     * @var AmqpConsumer|MockObject
-     */
-    private $amqpConsumer;
 
     protected function setUp(): void
     {
@@ -102,11 +99,7 @@ class ConsumerTest extends BaseTestCase
 
         $this->expectTargetContactToBe(Constants::REQUEST_DATA, $filteredContactIds);
 
-        $this->expectEnqueueToNotifierQueue([
-            'requestId' => Constants::TRIGGER_ID,
-            'chunkCount' => $chunkCount,
-            'chunkId' => 2,
-        ]);
+        $this->expectEnqueueToNotifierQueue($request);
 
         $this->assertEquals(Processor::ACK, $this->consumer->process($message, $this->context));
     }
@@ -120,7 +113,7 @@ class ConsumerTest extends BaseTestCase
         $message = $this->createMessage($request);
 
         $this->expectFiltering()->willThrowException($this->createMock(Throwable::class));
-        $this->expectEnqueueToWorkerQueue(CalculationRequest::createChunkRequest(1, 1, 0, 0), $message);
+        $this->expectEnqueueToWorkerQueue(CalculationRequest::createChunkRequest(1, 1, 0, 0));
 
         $this->resultHandler->expects($this->never())->method('onFailure');
 
@@ -152,7 +145,7 @@ class ConsumerTest extends BaseTestCase
         $this->expectFiltering()->willThrowException($this->createMock(Throwable::class));
         $this->expectFailureHandlerCall()->willThrowException($this->createMock(Throwable::class));
 
-        $this->expectEnqueueToWorkerQueue($request, $message);
+        $this->expectEnqueueToWorkerQueue($request);
 
         try {
             $this->consumer->process($message, $this->context);
@@ -177,13 +170,14 @@ class ConsumerTest extends BaseTestCase
         return $message;
     }
 
-    private function expectEnqueueToNotifierQueue($expectedQueueItem)
+    private function expectEnqueueToNotifierQueue(ChunkRequest $request)
     {
+        $message = $this->createMessage($request);
+        $this->context->expects($this->once())->method('createMessage')->willReturn($message);
         $this->producer
             ->expects($this->once())
             ->method('send')
-            ->with($this->notificationQueue, $this->isInstanceOf(Message::class));
-        //TODO: assert $expectedQueueItem
+            ->with($this->notificationQueue, $message);
     }
 
     private function expectSourceContactsToBe(array $contactIds, array $requestData, int $limit, int $offset): void
@@ -213,8 +207,9 @@ class ConsumerTest extends BaseTestCase
         return $this->filter->expects($this->once())->method('filterContacts');
     }
 
-    private function expectEnqueueToWorkerQueue(ChunkRequest $chunkRequest, Message $message)
+    private function expectEnqueueToWorkerQueue(ChunkRequest $chunkRequest)
     {
+        $message = $this->createMessage($chunkRequest);
         $this->context
             ->expects($this->once())
             ->method('createMessage')
@@ -230,7 +225,6 @@ class ConsumerTest extends BaseTestCase
         $this->workerQueue = $this->createMock(AmqpQueue::class);
         $this->context = $this->createMock(AmqpContext::class);
         $this->producer = $this->createMock(AmqpProducer::class);
-        $this->amqpConsumer = $this->createMock(AmqpConsumer::class);
 
         $queueFactory = $this->createMock(QueueFactory::class);
         $queueFactory
@@ -252,11 +246,6 @@ class ConsumerTest extends BaseTestCase
             ->expects($this->any())
             ->method('createProducer')
             ->willReturn($this->producer);
-
-        $this->context
-            ->expects($this->any())
-            ->method('createConsumer')
-            ->willReturn($this->amqpConsumer);
 
         return $queueFactory;
     }
