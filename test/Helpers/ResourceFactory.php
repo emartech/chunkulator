@@ -13,6 +13,9 @@ use Enqueue\AmqpLib\AmqpConnectionFactory;
 class ResourceFactory implements ResourceFactoryInterface
 {
     private $testCase;
+    const QUEUE_NAME_WORKER = 'worker';
+    const QUEUE_NAME_NOTIFIER = 'notifier';
+    const QUEUE_NAME_ERROR = 'error';
 
     public function __construct(IntegrationBaseTestCase $testCase)
     {
@@ -24,9 +27,9 @@ class ResourceFactory implements ResourceFactoryInterface
         return new QueueFactory(
             $this->testCase->logger,
             new AmqpConnectionFactory('amqp://guest:guest@rabbit:5672//'),
-            'worker',
-            'notifier',
-            'error',
+            self::QUEUE_NAME_WORKER,
+            self::QUEUE_NAME_NOTIFIER,
+            self::QUEUE_NAME_ERROR,
             1,
              24 * 60 * 60 * 1000
         );

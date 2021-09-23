@@ -3,6 +3,7 @@
 namespace Emartech\Chunkulator\Test\Calculator;
 
 use Emartech\Chunkulator\QueueFactory;
+use Emartech\Chunkulator\Test\Helpers\ResourceFactory;
 use Emartech\TestHelper\BaseTestCase;
 use Emartech\Chunkulator\Calculator\Consumer;
 use Emartech\Chunkulator\Calculator\ContactListHandler;
@@ -240,19 +241,25 @@ class ConsumerTest extends BaseTestCase
             ->with($chunkRequest->toJson())
             ->willReturn($message);
 
-        $this->producer->expects($this->once())->method('send')->with($this->callback(function ($subject) use ($queueName){
-            $this->assertEquals($queueName, $subject->getQueueName());
-            return true;
-        }), $message);
+        $this->producer
+            ->expects($this->once())
+            ->method('send')
+            ->with(
+                $this->callback(function (AmqpQueue $queue) use ($queueName) {
+                    $this->assertEquals($queueName, $queue->getQueueName());
+                    return true;
+                }),
+                $message
+            );
     }
 
     private function mockQueues(): QueueFactory
     {
         $this->notificationQueue = $this->createMock(AmqpQueue::class);
         $this->workerQueue = $this->createMock(AmqpQueue::class);
-        $this->workerQueue->expects($this->any())->method('getQueueName')->willReturn('workerQueue');
+        $this->workerQueue->expects($this->any())->method('getQueueName')->willReturn(ResourceFactory::QUEUE_NAME_WORKER);
         $this->errorQueue = $this->createMock(AmqpQueue::class);
-        $this->errorQueue->expects($this->any())->method('getQueueName')->willReturn('errorQueue');
+        $this->errorQueue->expects($this->any())->method('getQueueName')->willReturn(ResourceFactory::QUEUE_NAME_WORKER);
         $this->context = $this->createMock(AmqpContext::class);
         $this->producer = $this->createMock(AmqpProducer::class);
 
