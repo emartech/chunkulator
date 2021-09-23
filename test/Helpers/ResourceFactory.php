@@ -23,11 +23,12 @@ class ResourceFactory implements ResourceFactoryInterface
     {
         return new QueueFactory(
             $this->testCase->logger,
+            new AmqpConnectionFactory('amqp://guest:guest@rabbit:5672//'),
             'worker',
             'notifier',
-            new AmqpConnectionFactory('amqp://guest:guest@rabbit:5672//'),
+            'error',
             1,
-            24 * 60 * 60 * 1000
+             24 * 60 * 60 * 1000
         );
     }
 

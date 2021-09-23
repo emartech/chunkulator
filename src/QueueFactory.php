@@ -13,11 +13,12 @@ class QueueFactory
     private $factory;
     private $workerQueueName;
     private $notifierQueueName;
+    private $errorQueueName;
     private $connectionTimeOut;
     private $notificationTTL;
     private $logger;
 
-    public function __construct(LoggerInterface $logger, string $workerQueueName, string $notifierQueueName, AmqpConnectionFactory $factory, int $connectionTimeOut, int $notificationTTL)
+    public function __construct(LoggerInterface $logger, AmqpConnectionFactory $factory, string $workerQueueName, string $notifierQueueName, string $errorQueueName, int $connectionTimeOut, int $notificationTTL)
     {
         $this->workerQueueName = $workerQueueName;
         $this->notifierQueueName = $notifierQueueName;
@@ -25,6 +26,7 @@ class QueueFactory
         $this->connectionTimeOut = $connectionTimeOut;
         $this->notificationTTL = $notificationTTL;
         $this->logger = $logger;
+        $this->errorQueueName = $errorQueueName;
     }
 
     public function createContext(): Context
@@ -46,6 +48,15 @@ class QueueFactory
         $queue = $context->createQueue($this->notifierQueueName);
         $queue->addFlag(AmqpQueue::FLAG_DURABLE);
         $queue->setArgument('x-message-ttl', $this->notificationTTL); // use DelayStrategy ?
+        $context->declareQueue($queue);
+
+        return $queue;
+    }
+
+    public function createErrorQueue(Context $context): Queue
+    {
+        $queue = $context->createQueue($this->errorQueueName);
+        $queue->addFlag(AmqpQueue::FLAG_DURABLE);
         $context->declareQueue($queue);
 
         return $queue;

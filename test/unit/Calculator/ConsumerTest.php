@@ -44,6 +44,11 @@ class ConsumerTest extends BaseTestCase
     private $notificationQueue;
 
     /**
+     * @var Queue|MockObject
+     */
+    private $errorQueue;
+
+    /**
      * @var Filter|MockObject
      */
     private $filter;
@@ -113,7 +118,10 @@ class ConsumerTest extends BaseTestCase
         $message = $this->createMessage($request);
 
         $this->expectFiltering()->willThrowException($this->createMock(Throwable::class));
-        $this->expectEnqueueToWorkerQueue(CalculationRequest::createChunkRequest(1, 1, 0, 0));
+        $this->expectEnqueueToQueue(
+            $this->workerQueue->getQueueName(),
+            CalculationRequest::createChunkRequest(1, 1, 0, 0)
+        );
 
         $this->resultHandler->expects($this->never())->method('onFailure');
 
@@ -137,7 +145,23 @@ class ConsumerTest extends BaseTestCase
     /**
      * @test
      */
-    public function consume_NoMoreTriesLeftCallbackFails_Requeue()
+    public function consume_NoMoreTriesLeft_PutsToErrorQueue()
+    {
+        $request = CalculationRequest::createChunkRequest(2, 1, 0, 0);
+        $message = $this->createMessage($request);
+
+        $this->expectFiltering()->willThrowException($this->createMock(Throwable::class));
+        $this->expectFailureHandlerCall();
+
+        $this->expectEnqueueToQueue($this->errorQueue->getQueueName(), $request);
+
+        $this->consumer->process($message, $this->context);
+    }
+
+    /**
+     * @test
+     */
+    public function consume_NoMoreTriesLeftCallbackFails_PutsToErrorQueue()
     {
         $request = CalculationRequest::createChunkRequest(2, 1, 0, 0);
         $message = $this->createMessage($request);
@@ -145,7 +169,7 @@ class ConsumerTest extends BaseTestCase
         $this->expectFiltering()->willThrowException($this->createMock(Throwable::class));
         $this->expectFailureHandlerCall()->willThrowException($this->createMock(Throwable::class));
 
-        $this->expectEnqueueToWorkerQueue($request);
+        $this->expectEnqueueToQueue($this->errorQueue->getQueueName(), $request);
 
         try {
             $this->consumer->process($message, $this->context);
@@ -207,7 +231,7 @@ class ConsumerTest extends BaseTestCase
         return $this->filter->expects($this->once())->method('filterContacts');
     }
 
-    private function expectEnqueueToWorkerQueue(ChunkRequest $chunkRequest)
+    private function expectEnqueueToQueue(string $queueName, ChunkRequest $chunkRequest)
     {
         $message = $this->createMessage($chunkRequest);
         $this->context
@@ -216,13 +240,19 @@ class ConsumerTest extends BaseTestCase
             ->with($chunkRequest->toJson())
             ->willReturn($message);
 
-        $this->producer->expects($this->once())->method('send')->with($this->workerQueue, $message);
+        $this->producer->expects($this->once())->method('send')->with($this->callback(function ($subject) use ($queueName){
+            $this->assertEquals($queueName, $subject->getQueueName());
+            return true;
+        }), $message);
     }
 
     private function mockQueues(): QueueFactory
     {
         $this->notificationQueue = $this->createMock(AmqpQueue::class);
         $this->workerQueue = $this->createMock(AmqpQueue::class);
+        $this->workerQueue->expects($this->any())->method('getQueueName')->willReturn('workerQueue');
+        $this->errorQueue = $this->createMock(AmqpQueue::class);
+        $this->errorQueue->expects($this->any())->method('getQueueName')->willReturn('errorQueue');
         $this->context = $this->createMock(AmqpContext::class);
         $this->producer = $this->createMock(AmqpProducer::class);
 
@@ -236,6 +266,11 @@ class ConsumerTest extends BaseTestCase
             ->expects($this->any())
             ->method('createWorkerQueue')
             ->willReturn($this->workerQueue);
+
+        $queueFactory
+            ->expects($this->any())
+            ->method('createErrorQueue')
+            ->willReturn($this->errorQueue);
 
         $queueFactory
             ->expects($this->any())

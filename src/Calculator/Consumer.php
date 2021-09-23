@@ -58,15 +58,17 @@ class Consumer implements Processor
 
     private function retry(Context $context, ChunkRequest $request)
     {
-        $workerQueue = $this->queueFactory->createWorkerQueue($context);
         if ($request->tries > 0) {
+            $workerQueue = $this->queueFactory->createWorkerQueue($context);
             $request->tries--;
             $context->createProducer()->send($workerQueue, $context->createMessage($request->toJson()));
         } else {
+            $errorQueue = $this->queueFactory->createErrorQueue($context);
             try {
                 $this->resultHandler->onFailure($request->getCalculationRequest()->getData());
+                $context->createProducer()->send($errorQueue, $context->createMessage($request->toJson()));
             } catch (Throwable $t) {
-                $context->createProducer()->send($workerQueue, $context->createMessage($request->toJson()));
+                $context->createProducer()->send($errorQueue, $context->createMessage($request->toJson()));
                 throw $t;
             }
         }
