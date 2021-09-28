@@ -94,8 +94,8 @@ class ConsumerTest extends BaseTestCase
         $filteredContactIds = [2];
         $chunkCount = 5;
 
-        $request = CalculationRequest::createChunkRequest($chunkCount, 3, 2);
-        $message = $this->createMessage($request);
+        $chunkRequest = CalculationRequest::createChunkRequest($chunkCount, 3, 2);
+        $message = $this->createMessage($chunkRequest);
 
         $this->expectSourceContactsToBe($contactIds, Constants::REQUEST_DATA, 3, 6);
 
@@ -105,7 +105,7 @@ class ConsumerTest extends BaseTestCase
 
         $this->expectTargetContactToBe(Constants::REQUEST_DATA, $filteredContactIds);
 
-        $this->expectEnqueueToNotifierQueue($request);
+        $this->expectEnqueueToNotifierQueue($chunkRequest);
 
         $this->assertEquals(Processor::ACK, $this->consumer->process($message, $this->context));
     }
@@ -135,16 +135,7 @@ class ConsumerTest extends BaseTestCase
             ->method('getBody')
             ->willReturn('{"invalid":"message"}');
 
-        $this->producer
-            ->expects($this->once())
-            ->method('send')
-            ->with(
-                $this->callback(function (AmqpQueue $queue) {
-                    $this->assertEquals($this->errorQueue->getQueueName(), $queue->getQueueName());
-                    return true;
-                }),
-                $message
-            );
+        $this->expectEnqueueToErrorQueue($message);
 
         $this->consumer->process($message, $this->context);
     }
@@ -173,8 +164,8 @@ class ConsumerTest extends BaseTestCase
      */
     public function consume_ConsumeError_ReturnsWithReject()
     {
-        $request = CalculationRequest::createChunkRequest(1, 1, 0, 1);
-        $message = $this->createMessage($request);
+        $chunkRequest = CalculationRequest::createChunkRequest(1, 1, 0, 1);
+        $message = $this->createMessage($chunkRequest);
 
         $this->expectFilteringException();
 
@@ -186,8 +177,8 @@ class ConsumerTest extends BaseTestCase
      */
     public function consume_ConsumeError_MoreTriesLeft_CallsErrorResultHandler()
     {
-        $request = CalculationRequest::createChunkRequest(1, 1, 0, 1);
-        $message = $this->createMessage($request);
+        $chunkRequest = CalculationRequest::createChunkRequest(1, 1, 0, 1);
+        $message = $this->createMessage($chunkRequest);
 
         $this->expectFilteringException();
         $this->resultHandler
@@ -204,12 +195,11 @@ class ConsumerTest extends BaseTestCase
      */
     public function consume_ConsumeError_MoreTriesLeft_DecreaseTriesAndRequeue()
     {
-        $request = CalculationRequest::createChunkRequest(1, 1, 0, 1);
-        $message = $this->createMessage($request);
+        $chunkRequest = CalculationRequest::createChunkRequest(1, 1, 0, 1);
+        $message = $this->createMessage($chunkRequest);
 
         $this->expectFilteringException();
-        $this->expectEnqueueToQueue(
-            $this->workerQueue->getQueueName(),
+        $this->expectEnqueueToWorkerQueue(
             CalculationRequest::createChunkRequest(1, 1, 0, 0)
         );
 
@@ -221,8 +211,8 @@ class ConsumerTest extends BaseTestCase
      */
     public function consume_ConsumeError_NoMoreTriesLeft_DiscardsMessage()
     {
-        $request = CalculationRequest::createChunkRequest(2, 1, 0, 0);
-        $message = $this->createMessage($request);
+        $chunkRequest = CalculationRequest::createChunkRequest(2, 1, 0, 0);
+        $message = $this->createMessage($chunkRequest);
 
         $this->expectFilteringException();
 
@@ -234,8 +224,8 @@ class ConsumerTest extends BaseTestCase
      */
     public function consume_ConsumeError_NoMoreTriesLeft_callsBothErrorResultHandler()
     {
-        $request = CalculationRequest::createChunkRequest(2, 1, 0, 0);
-        $message = $this->createMessage($request);
+        $chunkRequest = CalculationRequest::createChunkRequest(2, 1, 0, 0);
+        $message = $this->createMessage($chunkRequest);
         $exception = $this->createMock(Throwable::class);
 
         $this->expectFilteringException($exception);
@@ -256,12 +246,11 @@ class ConsumerTest extends BaseTestCase
      */
     public function consume_ConsumeError_NoMoreTriesLeft_PutsToErrorQueue()
     {
-        $request = CalculationRequest::createChunkRequest(2, 1, 0, 0);
-        $message = $this->createMessage($request);
+        $chunkRequest = CalculationRequest::createChunkRequest(2, 1, 0, 0);
+        $message = $this->createMessage($chunkRequest);
 
         $this->expectFilteringException();
-
-        $this->expectEnqueueToQueue($this->errorQueue->getQueueName(), $request);
+        $this->expectEnqueueToErrorQueue($message);
 
         $this->consumer->process($message, $this->context);
     }
@@ -280,14 +269,47 @@ class ConsumerTest extends BaseTestCase
         return $message;
     }
 
-    private function expectEnqueueToNotifierQueue(ChunkRequest $request)
+    private function expectEnqueueToNotifierQueue(ChunkRequest $chunkRequest)
     {
-        $message = $this->createMessage($request);
-        $this->context->expects($this->once())->method('createMessage')->willReturn($message);
+        $message = $this->createMessage($chunkRequest);
+        $this->context
+            ->expects($this->once())
+            ->method('createMessage')
+            ->with($chunkRequest->toJson())
+            ->willReturn($message);
+
+        $this->expectEnqueueToQueue($this->notificationQueue->getQueueName(), $message);
+    }
+
+    private function expectEnqueueToWorkerQueue(ChunkRequest $chunkRequest)
+    {
+        $message = $this->createMessage($chunkRequest);
+        $this->context
+            ->expects($this->any())
+            ->method('createMessage')
+            ->with($chunkRequest->toJson())
+            ->willReturn($message);
+
+        $this->expectEnqueueToQueue($this->workerQueue->getQueueName(), $message);
+    }
+
+    private function expectEnqueueToErrorQueue(Message $message)
+    {
+        $this->expectEnqueueToQueue($this->errorQueue->getQueueName(), $message);
+    }
+
+    private function expectEnqueueToQueue(string $queueName, Message $message)
+    {
         $this->producer
             ->expects($this->once())
             ->method('send')
-            ->with($this->notificationQueue, $message);
+            ->with(
+                $this->callback(function (AmqpQueue $queue) use ($queueName) {
+                    $this->assertEquals($queueName, $queue->getQueueName());
+                    return true;
+                }),
+                $message
+            );
     }
 
     private function expectSourceContactsToBe(array $contactIds, array $requestData, int $limit, int $offset): void
@@ -315,27 +337,6 @@ class ConsumerTest extends BaseTestCase
     private function expectFiltering(): InvocationMocker
     {
         return $this->filter->expects($this->once())->method('filterContacts');
-    }
-
-    private function expectEnqueueToQueue(string $queueName, ChunkRequest $chunkRequest)
-    {
-        $message = $this->createMessage($chunkRequest);
-        $this->context
-            ->expects($this->any())
-            ->method('createMessage')
-            ->with($chunkRequest->toJson())
-            ->willReturn($message);
-
-        $this->producer
-            ->expects($this->once())
-            ->method('send')
-            ->with(
-                $this->callback(function (AmqpQueue $queue) use ($queueName) {
-                    $this->assertEquals($queueName, $queue->getQueueName());
-                    return true;
-                }),
-                $message
-            );
     }
 
     private function mockQueues(): QueueFactory
