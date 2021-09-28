@@ -17,7 +17,7 @@ class CalculationTest extends IntegrationBaseTestCase
     public function calculation_SuccessHandlerFails_MessageDiscarded()
     {
         $ex = new ResultHandlerException();
-        $this->resultHandler->expects($this->once())->method('onSuccess')->willThrowException($ex);
+        $this->resultHandler->expects($this->once())->method('onAllChunksDone')->willThrowException($ex);
 
         $amqpProducer = $this->context->createProducer();
 

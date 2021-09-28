@@ -22,7 +22,7 @@ class WorkerTest extends IntegrationBaseTestCase
      */
     public function run_EmptyQueue_MessagesNotRemoved()
     {
-        $this->resultHandler->expects($this->never())->method('onSuccess');
+        $this->resultHandler->expects($this->never())->method('onAllChunksDone');
         $this->sendMessage($this->notifierQueue, CalculationRequest::createChunkRequest(2, 1, 0)->toJson());
         $this->notifier->run($this->logger);
         $this->assertCount(1, $this->getMessagesFromQueue($this->notifierQueue));
@@ -33,7 +33,7 @@ class WorkerTest extends IntegrationBaseTestCase
      */
     public function run_finishedProcessFound_ClientNotifiedAndMessageRemoved()
     {
-        $this->resultHandler->expects($this->once())->method('onSuccess');
+        $this->resultHandler->expects($this->once())->method('onAllChunksDone');
         $this->sendMessage($this->notifierQueue, CalculationRequest::createChunkRequest(1, 1, 0)->toJson());
         $this->notifier->run($this->logger);
         $this->assertCount(0, $this->getMessagesFromQueue($this->notifierQueue));

@@ -32,7 +32,7 @@ class Calculation
     public function finish(AmqpConsumer $consumer, Consumer $calculationContainer)
     {
         if ($this->allChunksDone()) {
-            $this->resultHandler->onSuccess($this->calculationRequest->getData());
+            $this->resultHandler->onAllChunksDone($this->calculationRequest->getData());
             $this->ackMessages($consumer);
             $calculationContainer->removeCalculation($this->calculationRequest->getRequestId());
         }

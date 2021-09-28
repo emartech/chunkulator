@@ -124,7 +124,7 @@ class ConsumerTest extends BaseTestCase
             CalculationRequest::createChunkRequest(1, 1, 0, 0)
         );
 
-        $this->resultHandler->expects($this->never())->method('onFailure');
+        $this->resultHandler->expects($this->never())->method('onChunkErrorWithNoTriesLeft');
 
         $this->assertEquals(Processor::REJECT, $this->consumer->process($message, $this->context));
     }
@@ -224,7 +224,7 @@ class ConsumerTest extends BaseTestCase
 
     private function expectFailureHandlerCall(): InvocationMocker
     {
-        return $this->resultHandler->expects($this->once())->method('onFailure');
+        return $this->resultHandler->expects($this->once())->method('onChunkErrorWithNoTriesLeft');
     }
 
     private function expectFiltering(): InvocationMocker

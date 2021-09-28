@@ -48,7 +48,7 @@ class Consumer implements Processor
         try {
             $this->calculate($request);
         } catch (Throwable $t) {
-            $this->resultHandler->onError($request->getCalculationRequest()->getData(), $t);
+            $this->resultHandler->onChunkError($request->getCalculationRequest()->getData(), $t);
             $this->retry($context, $request);
             return self::REJECT;
         }
@@ -65,7 +65,7 @@ class Consumer implements Processor
         } else {
             $errorQueue = $this->queueFactory->createErrorQueue($context);
             try {
-                $this->resultHandler->onFailure($request->getCalculationRequest()->getData());
+                $this->resultHandler->onChunkErrorWithNoTriesLeft($request->getCalculationRequest()->getData());
                 $context->createProducer()->send($errorQueue, $context->createMessage($request->toJson()));
             } catch (Throwable $t) {
                 $context->createProducer()->send($errorQueue, $context->createMessage($request->toJson()));

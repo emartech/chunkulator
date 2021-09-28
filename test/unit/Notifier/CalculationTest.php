@@ -115,7 +115,7 @@ class CalculationTest extends BaseTestCase
 
     private function expectSuccessHandlerCall(InvokedCount $invocationRule = null): InvocationMocker
     {
-        return $this->resultHandler->expects($invocationRule ?? $this->once())->method('onSuccess');
+        return $this->resultHandler->expects($invocationRule ?? $this->once())->method('onAllChunksDone');
     }
 
     private function mockQueues(): QueueFactory

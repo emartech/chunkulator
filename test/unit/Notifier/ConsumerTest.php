@@ -216,7 +216,7 @@ class ConsumerTest extends BaseTestCase
 
     private function expectSuccessNotificationRequest(InvocationOrder $when = null): InvocationMocker
     {
-        return $this->resultHandler->expects($when ?: $this->once())->method('onSuccess');
+        return $this->resultHandler->expects($when ?: $this->once())->method('onAllChunksDone');
     }
 
     private function mockQueues(): QueueFactory
