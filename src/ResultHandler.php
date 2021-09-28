@@ -1,6 +1,6 @@
 <?php
 
-namespace Emartech\Chunkulator\Notifier;
+namespace Emartech\Chunkulator;
 
 use Throwable;
 

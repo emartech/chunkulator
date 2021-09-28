@@ -5,6 +5,7 @@ namespace Emartech\Chunkulator\Notifier;
 use Emartech\Chunkulator\QueueFactory;
 use Emartech\Chunkulator\Request\ChunkRequest;
 use Emartech\Chunkulator\Request\ChunkRequestBuilder;
+use Emartech\Chunkulator\ResultHandler;
 use Exception;
 use Interop\Amqp\AmqpConsumer;
 use Interop\Amqp\AmqpMessage as AmqpMessageInterface;

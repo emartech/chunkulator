@@ -4,7 +4,7 @@ namespace Emartech\Chunkulator;
 
 use Emartech\Chunkulator\Calculator\ContactListHandler;
 use Emartech\Chunkulator\Calculator\Filter as FilterInterface;
-use Emartech\Chunkulator\Notifier\ResultHandler;
+use Emartech\Chunkulator\ResultHandler;
 
 interface ResourceFactory
 {

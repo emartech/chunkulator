@@ -2,6 +2,7 @@
 
 namespace Emartech\Chunkulator\Notifier;
 
+use Emartech\Chunkulator\ResultHandler;
 use Interop\Amqp\AmqpConsumer;
 use Interop\Amqp\AmqpMessage;
 use Emartech\Chunkulator\Request\ChunkRequestBuilder;

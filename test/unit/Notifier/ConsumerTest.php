@@ -6,7 +6,7 @@ use Emartech\Chunkulator\QueueFactory;
 use Emartech\TestHelper\BaseTestCase;
 use Emartech\Chunkulator\Exception as ResultHandlerException;
 use Emartech\Chunkulator\Notifier\Consumer;
-use Emartech\Chunkulator\Notifier\ResultHandler;
+use Emartech\Chunkulator\ResultHandler;
 use Emartech\Chunkulator\Request\ChunkRequest;
 use Emartech\Chunkulator\Request\Request;
 use Emartech\Chunkulator\Test\Helpers\CalculationRequest;

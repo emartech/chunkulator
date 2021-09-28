@@ -2,7 +2,7 @@
 
 namespace Emartech\Chunkulator\Test;
 
-use Emartech\Chunkulator\Notifier\ResultHandler;
+use Emartech\Chunkulator\ResultHandler;
 use Emartech\Chunkulator\QueueFactory;
 use Emartech\Chunkulator\Test\Helpers\ResourceFactory;
 use Interop\Queue\Context;

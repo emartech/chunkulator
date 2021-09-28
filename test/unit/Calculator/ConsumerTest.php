@@ -8,7 +8,7 @@ use Emartech\TestHelper\BaseTestCase;
 use Emartech\Chunkulator\Calculator\Consumer;
 use Emartech\Chunkulator\Calculator\ContactListHandler;
 use Emartech\Chunkulator\Calculator\Filter;
-use Emartech\Chunkulator\Notifier\ResultHandler;
+use Emartech\Chunkulator\ResultHandler;
 use Emartech\Chunkulator\Request\ChunkRequest;
 use Emartech\Chunkulator\Test\Helpers\CalculationRequest;
 use Emartech\Chunkulator\Test\Helpers\Constants;

@@ -3,7 +3,7 @@
 namespace Emartech\Chunkulator\Calculator;
 
 use Emartech\Chunkulator\Request\ChunkRequestBuilder;
-use Emartech\Chunkulator\Notifier\ResultHandler;
+use Emartech\Chunkulator\ResultHandler;
 use Emartech\Chunkulator\QueueFactory;
 use Emartech\Chunkulator\Request\ChunkRequest;
 use Interop\Queue\Context;
