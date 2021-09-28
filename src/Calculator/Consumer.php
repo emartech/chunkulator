@@ -49,7 +49,14 @@ class Consumer implements Processor
             $this->calculate($request);
         } catch (Throwable $t) {
             $this->resultHandler->onChunkError($request->getCalculationRequest()->getData(), $t);
-            $this->retry($context, $request);
+
+            if ($request->tries > 0) {
+                $this->retry($context, $request);
+            } else {
+                $this->resultHandler->onChunkErrorWithNoTriesLeft($request->getCalculationRequest()->getData(), $t);
+                $this->error($context, $message);
+            }
+
             return self::REJECT;
         }
 
@@ -58,20 +65,15 @@ class Consumer implements Processor
 
     private function retry(Context $context, ChunkRequest $request)
     {
-        if ($request->tries > 0) {
-            $workerQueue = $this->queueFactory->createWorkerQueue($context);
-            $request->tries--;
-            $context->createProducer()->send($workerQueue, $context->createMessage($request->toJson()));
-        } else {
-            $errorQueue = $this->queueFactory->createErrorQueue($context);
-            try {
-                $this->resultHandler->onChunkErrorWithNoTriesLeft($request->getCalculationRequest()->getData());
-                $context->createProducer()->send($errorQueue, $context->createMessage($request->toJson()));
-            } catch (Throwable $t) {
-                $context->createProducer()->send($errorQueue, $context->createMessage($request->toJson()));
-                throw $t;
-            }
-        }
+        $workerQueue = $this->queueFactory->createWorkerQueue($context);
+        $request->tries--;
+        $context->createProducer()->send($workerQueue, $context->createMessage($request->toJson()));
+    }
+
+    private function error(Context $context, Message $message)
+    {
+        $errorQueue = $this->queueFactory->createErrorQueue($context);
+        $context->createProducer()->send($errorQueue, $message);
     }
 
     public function timeOut()

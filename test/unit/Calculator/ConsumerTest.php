@@ -212,31 +212,6 @@ class ConsumerTest extends BaseTestCase
     }
 
     /**
-     * @test
-     */
-    public function consume_ConsumeError_NoMoreTriesLeft_CallbackFails_PutsToErrorQueueForwardException()
-    {
-        $request = CalculationRequest::createChunkRequest(2, 1, 0, 0);
-        $message = $this->createMessage($request);
-
-        $this->expectFilteringException();
-        $this->resultHandler
-            ->expects($this->once())
-            ->method('onChunkErrorWithNoTriesLeft')
-            ->willThrowException($this->createMock(Throwable::class));
-
-        $this->expectEnqueueToQueue($this->errorQueue->getQueueName(), $request);
-
-        try {
-            $this->consumer->process($message, $this->context);
-        } catch (Throwable $t) {
-            return;
-        }
-
-        $this->fail();
-    }
-
-    /**
      * @return MockObject|Message
      */
     private function createMessage(ChunkRequest $chunkRequest)
@@ -291,7 +266,7 @@ class ConsumerTest extends BaseTestCase
     {
         $message = $this->createMessage($chunkRequest);
         $this->context
-            ->expects($this->once())
+            ->expects($this->any())
             ->method('createMessage')
             ->with($chunkRequest->toJson())
             ->willReturn($message);

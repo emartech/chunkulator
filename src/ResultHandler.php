@@ -7,6 +7,6 @@ use Throwable;
 interface ResultHandler
 {
     public function onAllChunksDone(array $requestData): void;
-    public function onChunkErrorWithNoTriesLeft(array $requestData): void;
+    public function onChunkErrorWithNoTriesLeft(array $requestData, Throwable $error): void;
     public function onChunkError(array $requestData, Throwable $error): void;
 }
