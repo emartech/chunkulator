@@ -113,13 +113,29 @@ class ConsumerTest extends BaseTestCase
     /**
      * @test
      */
+    public function consume_ConsumeError_ReturnsWithReject()
+    {
+        $request = CalculationRequest::createChunkRequest(1, 1, 0, 1);
+        $message = $this->createMessage($request);
+
+        $this->expectFilteringException();
+
+        $this->assertEquals(Processor::REJECT, $this->consumer->process($message, $this->context));
+    }
+
+    /**
+     * @test
+     */
     public function consume_ConsumeError_MoreTriesLeft_CallsErrorResultHandler()
     {
         $request = CalculationRequest::createChunkRequest(1, 1, 0, 1);
         $message = $this->createMessage($request);
 
-        $this->expectFiltering()->willThrowException($this->createMock(Throwable::class));
-        $this->resultHandler->expects($this->once())->method('onChunkError')->with($request->getCalculationRequest()->getData());
+        $this->expectFilteringException();
+        $this->resultHandler
+            ->expects($this->once())
+            ->method('onChunkError')
+            ->with($request->getCalculationRequest()->getData());
         $this->resultHandler->expects($this->never())->method('onChunkErrorWithNoTriesLeft');
 
         $this->consumer->process($message, $this->context);
@@ -128,25 +144,12 @@ class ConsumerTest extends BaseTestCase
     /**
      * @test
      */
-    public function consume_ConsumeError_ReturnsWithReject()
+    public function consume_ConsumeError_MoreTriesLeft_DecreaseTriesAndRequeue()
     {
         $request = CalculationRequest::createChunkRequest(1, 1, 0, 1);
         $message = $this->createMessage($request);
 
-        $this->expectFiltering()->willThrowException($this->createMock(Throwable::class));
-
-        $this->assertEquals(Processor::REJECT, $this->consumer->process($message, $this->context));
-    }
-
-    /**
-     * @test
-     */
-    public function consume_MoreTriesLeft_DecreaseTriesAndRequeue()
-    {
-        $request = CalculationRequest::createChunkRequest(1, 1, 0, 1);
-        $message = $this->createMessage($request);
-
-        $this->expectFiltering()->willThrowException($this->createMock(Throwable::class));
+        $this->expectFilteringException();
         $this->expectEnqueueToQueue(
             $this->workerQueue->getQueueName(),
             CalculationRequest::createChunkRequest(1, 1, 0, 0)
@@ -158,12 +161,12 @@ class ConsumerTest extends BaseTestCase
     /**
      * @test
      */
-    public function consume_NoMoreTriesLeft_DiscardsMessage()
+    public function consume_ConsumeError_NoMoreTriesLeft_DiscardsMessage()
     {
         $request = CalculationRequest::createChunkRequest(2, 1, 0, 0);
         $message = $this->createMessage($request);
 
-        $this->expectFiltering()->willThrowException($this->createMock(Throwable::class));
+        $this->expectFilteringException();
 
         $this->assertEquals(Processor::REJECT, $this->consumer->process($message, $this->context));
     }
@@ -171,14 +174,20 @@ class ConsumerTest extends BaseTestCase
     /**
      * @test
      */
-    public function consume_NoMoreTriesLeft_callsBothErrorResultHandler()
+    public function consume_ConsumeError_NoMoreTriesLeft_callsBothErrorResultHandler()
     {
         $request = CalculationRequest::createChunkRequest(2, 1, 0, 0);
         $message = $this->createMessage($request);
 
-        $this->expectFiltering()->willThrowException($this->createMock(Throwable::class));
-        $this->resultHandler->expects($this->once())->method('onChunkError')->with($request->getCalculationRequest()->getData());
-        $this->resultHandler->expects($this->once())->method('onChunkErrorWithNoTriesLeft')->with($request->getCalculationRequest()->getData());
+        $this->expectFilteringException();
+        $this->resultHandler
+            ->expects($this->once())
+            ->method('onChunkError')
+            ->with($request->getCalculationRequest()->getData());
+        $this->resultHandler
+            ->expects($this->once())
+            ->method('onChunkErrorWithNoTriesLeft')
+            ->with($request->getCalculationRequest()->getData());
 
         $this->consumer->process($message, $this->context);
     }
@@ -186,13 +195,16 @@ class ConsumerTest extends BaseTestCase
     /**
      * @test
      */
-    public function consume_NoMoreTriesLeft_PutsToErrorQueue()
+    public function consume_ConsumeError_NoMoreTriesLeft_PutsToErrorQueue()
     {
         $request = CalculationRequest::createChunkRequest(2, 1, 0, 0);
         $message = $this->createMessage($request);
 
-        $this->expectFiltering()->willThrowException($this->createMock(Throwable::class));
-        $this->resultHandler->expects($this->once())->method('onChunkErrorWithNoTriesLeft')->with($request->getCalculationRequest()->getData());
+        $this->expectFilteringException();
+        $this->resultHandler
+            ->expects($this->once())
+            ->method('onChunkErrorWithNoTriesLeft')
+            ->with($request->getCalculationRequest()->getData());
 
         $this->expectEnqueueToQueue($this->errorQueue->getQueueName(), $request);
 
@@ -202,13 +214,16 @@ class ConsumerTest extends BaseTestCase
     /**
      * @test
      */
-    public function consume_NoMoreTriesLeft_CallbackFails_PutsToErrorQueue()
+    public function consume_ConsumeError_NoMoreTriesLeft_CallbackFails_PutsToErrorQueueForwardException()
     {
         $request = CalculationRequest::createChunkRequest(2, 1, 0, 0);
         $message = $this->createMessage($request);
 
-        $this->expectFiltering()->willThrowException($this->createMock(Throwable::class));
-        $this->resultHandler->expects($this->once())->method('onChunkErrorWithNoTriesLeft')->willThrowException($this->createMock(Throwable::class));
+        $this->expectFilteringException();
+        $this->resultHandler
+            ->expects($this->once())
+            ->method('onChunkErrorWithNoTriesLeft')
+            ->willThrowException($this->createMock(Throwable::class));
 
         $this->expectEnqueueToQueue($this->errorQueue->getQueueName(), $request);
 
@@ -260,6 +275,11 @@ class ConsumerTest extends BaseTestCase
             ->expects($this->once())
             ->method('applyContactsToList')
             ->with($requestData, $contactIds);
+    }
+
+    private function expectFilteringException()
+    {
+        $this->expectFiltering()->willThrowException($this->createMock(Throwable::class));
     }
 
     private function expectFiltering(): InvocationMocker
