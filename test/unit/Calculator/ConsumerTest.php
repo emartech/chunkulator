@@ -113,6 +113,64 @@ class ConsumerTest extends BaseTestCase
     /**
      * @test
      */
+    public function consume_InvalidMessage_ReturnsWithReject()
+    {
+        $message = $this->createMock(Message::class);
+        $message
+            ->expects($this->any())
+            ->method('getBody')
+            ->willReturn('{"invalid":"message"}');
+
+        $this->assertEquals(Processor::REJECT, $this->consumer->process($message, $this->context));
+    }
+
+    /**
+     * @test
+     */
+    public function consume_InvalidMessage_PutToErrorQueue()
+    {
+        $message = $this->createMock(Message::class);
+        $message
+            ->expects($this->any())
+            ->method('getBody')
+            ->willReturn('{"invalid":"message"}');
+
+        $this->producer
+            ->expects($this->once())
+            ->method('send')
+            ->with(
+                $this->callback(function (AmqpQueue $queue) {
+                    $this->assertEquals($this->errorQueue->getQueueName(), $queue->getQueueName());
+                    return true;
+                }),
+                $message
+            );
+
+        $this->consumer->process($message, $this->context);
+    }
+
+    /**
+     * @test
+     */
+    public function consume_InvalidMessage_CallsErrorResultHandler()
+    {
+        $message = $this->createMock(Message::class);
+        $message
+            ->expects($this->any())
+            ->method('getBody')
+            ->willReturn('{"invalid":"message"}');
+
+        $this->resultHandler
+            ->expects($this->once())
+            ->method('onChunkErrorWithNoTriesLeft')
+            ->with($message->getBody());
+
+        $this->consumer->process($message, $this->context);
+    }
+
+    /**
+     * @test
+     */
     public function consume_ConsumeError_ReturnsWithReject()
     {
         $request = CalculationRequest::createChunkRequest(1, 1, 0, 1);
@@ -135,7 +193,7 @@ class ConsumerTest extends BaseTestCase
         $this->resultHandler
             ->expects($this->once())
             ->method('onChunkError')
-            ->with($request->getCalculationRequest()->getData());
+            ->with($message->getBody());
         $this->resultHandler->expects($this->never())->method('onChunkErrorWithNoTriesLeft');
 
         $this->consumer->process($message, $this->context);
@@ -178,16 +236,17 @@ class ConsumerTest extends BaseTestCase
     {
         $request = CalculationRequest::createChunkRequest(2, 1, 0, 0);
         $message = $this->createMessage($request);
+        $exception = $this->createMock(Throwable::class);
 
-        $this->expectFilteringException();
+        $this->expectFilteringException($exception);
         $this->resultHandler
             ->expects($this->once())
             ->method('onChunkError')
-            ->with($request->getCalculationRequest()->getData());
+            ->with($message->getBody(), $exception);
         $this->resultHandler
             ->expects($this->once())
             ->method('onChunkErrorWithNoTriesLeft')
-            ->with($request->getCalculationRequest()->getData());
+            ->with($message->getBody(), $exception);
 
         $this->consumer->process($message, $this->context);
     }
@@ -201,10 +260,6 @@ class ConsumerTest extends BaseTestCase
         $message = $this->createMessage($request);
 
         $this->expectFilteringException();
-        $this->resultHandler
-            ->expects($this->once())
-            ->method('onChunkErrorWithNoTriesLeft')
-            ->with($request->getCalculationRequest()->getData());
 
         $this->expectEnqueueToQueue($this->errorQueue->getQueueName(), $request);
 
@@ -252,9 +307,9 @@ class ConsumerTest extends BaseTestCase
             ->with($requestData, $contactIds);
     }
 
-    private function expectFilteringException()
+    private function expectFilteringException(Throwable $t = null)
     {
-        $this->expectFiltering()->willThrowException($this->createMock(Throwable::class));
+        $this->expectFiltering()->willThrowException($t ?? $this->createMock(Throwable::class));
     }
 
     private function expectFiltering(): InvocationMocker

@@ -43,18 +43,22 @@ class Consumer implements Processor
 
     public function process(Message $message, Context $context): string
     {
-        $request = ChunkRequestBuilder::fromMessage($message);
+        try {
+            $request = ChunkRequestBuilder::fromMessage($message);
+        } catch (Throwable $t) {
+            $this->error($context, $message, $t);
+            return self::REJECT;
+        }
 
         try {
             $this->calculate($request);
         } catch (Throwable $t) {
-            $this->resultHandler->onChunkError($request->getCalculationRequest()->getData(), $t);
+            $this->resultHandler->onChunkError($message->getBody(), $t);
 
             if ($request->tries > 0) {
                 $this->retry($context, $request);
             } else {
-                $this->resultHandler->onChunkErrorWithNoTriesLeft($request->getCalculationRequest()->getData(), $t);
-                $this->error($context, $message);
+                $this->error($context, $message, $t);
             }
 
             return self::REJECT;
@@ -70,8 +74,9 @@ class Consumer implements Processor
         $context->createProducer()->send($workerQueue, $context->createMessage($request->toJson()));
     }
 
-    private function error(Context $context, Message $message)
+    private function error(Context $context, Message $message, Throwable $t)
     {
+        $this->resultHandler->onChunkErrorWithNoTriesLeft($message->getBody(), $t);
         $errorQueue = $this->queueFactory->createErrorQueue($context);
         $context->createProducer()->send($errorQueue, $message);
     }
