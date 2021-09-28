@@ -138,7 +138,7 @@ class ConsumerTest extends BaseTestCase
         $message = $this->createMessage($request);
 
         $this->expectFiltering()->willThrowException($this->createMock(Throwable::class));
-        $this->expectFailureHandlerCall();
+        $this->expectFailureHandlerCall()->with($request->getCalculationRequest()->getData());
 
         $this->assertEquals(Processor::REJECT, $this->consumer->process($message, $this->context));
     }
@@ -152,7 +152,7 @@ class ConsumerTest extends BaseTestCase
         $message = $this->createMessage($request);
 
         $this->expectFiltering()->willThrowException($this->createMock(Throwable::class));
-        $this->expectFailureHandlerCall();
+        $this->expectFailureHandlerCall()->with($request->getCalculationRequest()->getData());
 
         $this->expectEnqueueToQueue($this->errorQueue->getQueueName(), $request);
 
